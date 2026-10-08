@@ -1,6 +1,6 @@
 package com.businessmanagementplateform.backend.enums;
 
-public enum UserStatus {
+public enum CustomerStatus {
     ACTIVE,
     INACTIVE
 }
