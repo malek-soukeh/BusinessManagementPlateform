@@ -1,0 +1,281 @@
+// Business Management Platform - ERD (DBML)
+// Visualisation : coller ce fichier sur https://dbdiagram.io (Import > DBML)
+// Référence détaillée : docs/database.md
+
+Project business_management {
+  database_type: 'PostgreSQL'
+  Note: 'Schéma relationnel v1.0 (proposition à valider)'
+}
+
+// ---------- Enums ----------
+
+Enum role_type {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+Enum user_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum customer_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum product_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum order_status {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+Enum invoice_status {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+Enum payment_status {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
+Enum payment_method {
+  CASH
+  BANK_TRANSFER
+  CARD
+  CHECK
+}
+
+Enum stock_movement_reason {
+  INITIAL_STOCK
+  ORDER_CONFIRMED
+  ORDER_CANCELLED
+  MANUAL_ADJUSTMENT
+}
+
+Enum audit_action {
+  LOGIN
+  CREATE
+  UPDATE
+  DELETE
+  CREATE_ORDER
+  UPDATE_ORDER
+  CREATE_INVOICE
+  UPDATE_INVOICE
+}
+
+// ---------- Tables ----------
+
+Table roles {
+  id bigint [pk, increment]
+  name role_type [not null, unique]
+  description varchar(255)
+}
+
+Table users {
+  id bigint [pk, increment]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  password varchar(255) [not null, note: 'Hash BCrypt']
+  phone varchar(20)
+  status user_status [not null, default: 'ACTIVE']
+  role_id bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    role_id [name: 'idx_users_role_id']
+  }
+}
+
+Table customers {
+  id bigint [pk, increment]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  phone varchar(20)
+  address varchar(255)
+  company varchar(150)
+  tax_number varchar(50) [note: 'Unique si renseigné (index partiel)']
+  status customer_status [not null, default: 'ACTIVE']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table categories {
+  id bigint [pk, increment]
+  name varchar(100) [not null, unique]
+  description varchar(255)
+  parent_id bigint [note: 'Catégorie parente (hiérarchie)']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    parent_id [name: 'idx_categories_parent_id']
+  }
+}
+
+Table products {
+  id bigint [pk, increment]
+  reference varchar(50) [not null, unique]
+  name varchar(200) [not null]
+  description text
+  purchase_price numeric(14,3) [not null, note: 'CHECK > 0']
+  selling_price numeric(14,3) [not null, note: 'CHECK > 0']
+  quantity int [not null, default: 0, note: 'CHECK >= 0']
+  minimum_stock int [not null, default: 0, note: 'CHECK >= 0']
+  category_id bigint [not null]
+  status product_status [not null, default: 'ACTIVE']
+  version bigint [not null, default: 0, note: 'Verrou optimiste']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    category_id [name: 'idx_products_category_id']
+    status [name: 'idx_products_status']
+  }
+}
+
+Table stock_movements {
+  id bigint [pk, increment]
+  product_id bigint [not null]
+  quantity_change int [not null, note: 'CHECK <> 0, négatif pour une sortie']
+  quantity_after int [not null, note: 'CHECK >= 0']
+  reason stock_movement_reason [not null]
+  order_id bigint
+  note varchar(255)
+  created_by bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (product_id, created_at) [name: 'idx_stock_movements_product_created']
+  }
+
+  Note: 'Ajout proposé (D10) : historique des mouvements de stock'
+}
+
+Table orders {
+  id bigint [pk, increment]
+  order_number varchar(30) [not null, unique]
+  customer_id bigint [not null]
+  order_date timestamptz [not null, default: `now()`]
+  status order_status [not null, default: 'PENDING']
+  total_amount numeric(14,3) [not null, default: 0, note: 'CHECK >= 0']
+  created_by bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    customer_id [name: 'idx_orders_customer_id']
+    status [name: 'idx_orders_status']
+    order_date [name: 'idx_orders_order_date']
+    created_by [name: 'idx_orders_created_by']
+  }
+}
+
+Table order_items {
+  id bigint [pk, increment]
+  order_id bigint [not null]
+  product_id bigint [not null]
+  quantity int [not null, note: 'CHECK > 0']
+  unit_price numeric(14,3) [not null, note: 'Prix figé à la création, CHECK > 0']
+  subtotal numeric(14,3) [not null, note: 'CHECK = quantity x unit_price']
+
+  indexes {
+    (order_id, product_id) [unique, name: 'uq_order_items_order_product']
+    order_id [name: 'idx_order_items_order_id']
+    product_id [name: 'idx_order_items_product_id']
+  }
+}
+
+Table invoices {
+  id bigint [pk, increment]
+  invoice_number varchar(30) [not null, unique]
+  order_id bigint [not null, unique]
+  issue_date date [not null]
+  due_date date [not null, note: 'CHECK >= issue_date']
+  subtotal numeric(14,3) [not null]
+  tax_amount numeric(14,3) [not null, default: 0]
+  discount numeric(14,3) [not null, default: 0]
+  total_amount numeric(14,3) [not null, note: 'CHECK = subtotal - discount + tax_amount']
+  status invoice_status [not null, default: 'DRAFT']
+  payment_status payment_status [not null, default: 'UNPAID']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    status [name: 'idx_invoices_status']
+    payment_status [name: 'idx_invoices_payment_status']
+    due_date [name: 'idx_invoices_due_date']
+  }
+}
+
+Table payments {
+  id bigint [pk, increment]
+  invoice_id bigint [not null]
+  amount numeric(14,3) [not null, note: 'CHECK > 0']
+  method payment_method [not null]
+  payment_date timestamptz [not null, default: `now()`]
+  created_by bigint [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    invoice_id [name: 'idx_payments_invoice_id']
+  }
+}
+
+Table audit_logs {
+  id bigint [pk, increment]
+  user_id bigint
+  user_email varchar(255) [not null, note: 'Copie de l e-mail au moment de l action']
+  action audit_action [not null]
+  entity_type varchar(50)
+  entity_id bigint
+  details text
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    created_at [name: 'idx_audit_logs_created_at']
+    user_id [name: 'idx_audit_logs_user_id']
+    (entity_type, entity_id) [name: 'idx_audit_logs_entity']
+  }
+}
+
+// ---------- Relations ----------
+
+Ref fk_users_roles: users.role_id > roles.id [delete: restrict]
+
+Ref fk_categories_parent: categories.parent_id > categories.id [delete: restrict]
+
+Ref fk_products_categories: products.category_id > categories.id [delete: restrict]
+
+Ref fk_orders_customers: orders.customer_id > customers.id [delete: restrict]
+Ref fk_orders_users: orders.created_by > users.id [delete: restrict]
+
+Ref fk_order_items_orders: order_items.order_id > orders.id [delete: cascade]
+Ref fk_order_items_products: order_items.product_id > products.id [delete: restrict]
+
+Ref fk_invoices_orders: invoices.order_id - orders.id [delete: restrict]
+
+Ref fk_payments_invoices: payments.invoice_id > invoices.id [delete: restrict]
+Ref fk_payments_users: payments.created_by > users.id [delete: restrict]
+
+Ref fk_stock_movements_products: stock_movements.product_id > products.id [delete: restrict]
+Ref fk_stock_movements_orders: stock_movements.order_id > orders.id [delete: restrict]
+Ref fk_stock_movements_users: stock_movements.created_by > users.id [delete: restrict]
+
+Ref fk_audit_logs_users: audit_logs.user_id > users.id [delete: set null]
