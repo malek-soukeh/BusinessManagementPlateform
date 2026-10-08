@@ -9,7 +9,7 @@
 
 ## Backend (Java)
 
-- Package racine : `com.techdistrib`
+- Package racine : `com.businessmanagementplateform.backend`
 - Classes : `PascalCase`. Méthodes et variables : `camelCase`. Constantes : `UPPER_SNAKE_CASE`.
 - Suffixes : `XxxController`, `XxxService`, `XxxRepository`, `XxxRequest`, `XxxResponse`, `XxxMapper`.
 - Endpoints : pluriel, minuscules, préfixe `/api` (ex. `/api/customers`).
