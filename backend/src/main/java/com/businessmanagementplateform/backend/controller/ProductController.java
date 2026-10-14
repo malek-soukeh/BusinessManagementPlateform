@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/products")
@@ -50,8 +51,9 @@ public class ProductController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    public ProductResponse create(@Valid @RequestBody CreateProductRequest request) {
-        return productService.create(request);
+    public ProductResponse create(@Valid @RequestBody CreateProductRequest request,
+                                  Authentication authentication) {
+        return productService.create(request, authentication.getName());
     }
 
     @PutMapping("/{id}")

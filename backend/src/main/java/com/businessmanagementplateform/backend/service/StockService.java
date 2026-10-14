@@ -32,8 +32,7 @@ public class StockService {
     @Transactional
     public StockMovementResponse adjust(Long productId, AdjustStockRequest request, String userEmail) {
         Product product = getProduct(productId);
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User user = getUser(userEmail);
 
         int newQuantity = product.getQuantity() + request.quantityChange();
         if (newQuantity < 0) {
@@ -56,6 +55,25 @@ public class StockService {
         return stockMovementMapper.toResponse(stockMovementRepository.save(movement));
     }
 
+    @Transactional
+    public void recordInitialStock(Product product, String userEmail) {
+        int quantity = product.getQuantity();
+        if (quantity <= 0) {
+            return;
+        }
+
+        StockMovement movement = StockMovement.builder()
+                .product(product)
+                .quantityChange(quantity)
+                .quantityAfter(quantity)
+                .reason(StockMovementReason.INITIAL_STOCK)
+                .note("Initial stock at product creation")
+                .createdBy(getUser(userEmail))
+                .build();
+
+        stockMovementRepository.save(movement);
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<StockMovementResponse> history(Long productId, Pageable pageable) {
         getProduct(productId);
@@ -71,5 +89,10 @@ public class StockService {
     private Product getProduct(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id " + id));
+    }
+
+    private User getUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

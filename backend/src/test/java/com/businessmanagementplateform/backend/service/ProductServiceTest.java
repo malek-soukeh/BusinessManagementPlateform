@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
+    private static final String EMAIL = "admin@techdistrib.tn";
 
     @Mock
     private ProductRepository productRepository;
@@ -40,6 +41,8 @@ class ProductServiceTest {
 
     @Spy
     private ProductMapper productMapper = new ProductMapper();
+    @Mock
+    private StockService stockService;
 
     @InjectMocks
     private ProductService productService;
@@ -79,7 +82,7 @@ class ProductServiceTest {
         when(productRepository.saveAndFlush(any(Product.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        productService.create(request);
+        productService.create(request, EMAIL);
 
         ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).saveAndFlush(captor.capture());
@@ -91,6 +94,7 @@ class ProductServiceTest {
         assertThat(saved.getQuantity()).isEqualTo(15);
         assertThat(saved.getMinimumStock()).isZero();
         assertThat(saved.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        verify(stockService).recordInitialStock(saved, EMAIL);
     }
 
     @Test
@@ -99,7 +103,7 @@ class ProductServiceTest {
                 BigDecimal.ONE, BigDecimal.TEN, 1, 0, 7L);
         when(productRepository.existsByReference("PC001")).thenReturn(true);
 
-        assertThatThrownBy(() -> productService.create(request))
+        assertThatThrownBy(() -> productService.create(request, EMAIL))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("PC001");
         verify(productRepository, never()).saveAndFlush(any(Product.class));
@@ -112,7 +116,7 @@ class ProductServiceTest {
         when(productRepository.existsByReference("NOCAT")).thenReturn(false);
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> productService.create(request))
+        assertThatThrownBy(() -> productService.create(request, EMAIL))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Category");
     }
@@ -128,6 +132,7 @@ class ProductServiceTest {
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("modified by someone else");
         verify(productRepository, never()).saveAndFlush(any(Product.class));
+        verify(stockService, never()).recordInitialStock(any(Product.class), any());
     }
 
     @Test

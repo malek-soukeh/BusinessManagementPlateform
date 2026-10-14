@@ -29,9 +29,9 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
-
+    private final StockService stockService;
     @Transactional
-    public ProductResponse create(CreateProductRequest request) {
+    public ProductResponse create(CreateProductRequest request, String userEmail) {
         String reference = normalizeReference(request.reference());
         if (productRepository.existsByReference(reference)) {
             throw new ConflictException("Reference already in use: " + reference);
@@ -49,8 +49,9 @@ public class ProductService {
                 .status(ProductStatus.ACTIVE)
                 .build();
 
-        return productMapper.toResponse(productRepository.saveAndFlush(product));
-    }
+        Product saved = productRepository.saveAndFlush(product);
+        stockService.recordInitialStock(saved, userEmail);
+        return productMapper.toResponse(saved);    }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> findAll(String q, Long categoryId, ProductStatus status,
