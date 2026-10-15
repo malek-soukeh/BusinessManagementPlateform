@@ -10,7 +10,7 @@ public record CreateOrderRequest(
         @NotNull
         Long customerId,
 
-        @NotEmpty @Valid
-        List<OrderItemRequest> items
+        @NotEmpty
+        List<@Valid OrderItemRequest> items
 ) {
 }

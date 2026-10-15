@@ -73,6 +73,28 @@ public class StockService {
 
         stockMovementRepository.save(movement);
     }
+    @Transactional
+    public void applyOrderMovement(Product product, int quantityChange, StockMovementReason reason,
+                                   Long orderId, String note, User user) {
+        int newQuantity = product.getQuantity() + quantityChange;
+        if (newQuantity < 0) {
+            throw new ConflictException("Insufficient stock for " + product.getReference()
+                    + ": available " + product.getQuantity() + ", requested " + (-quantityChange));
+        }
+
+        product.setQuantity(newQuantity);
+        productRepository.saveAndFlush(product);
+
+        stockMovementRepository.save(StockMovement.builder()
+                .product(product)
+                .quantityChange(quantityChange)
+                .quantityAfter(newQuantity)
+                .reason(reason)
+                .orderId(orderId)
+                .note(note)
+                .createdBy(user)
+                .build());
+    }
 
     @Transactional(readOnly = true)
     public PageResponse<StockMovementResponse> history(Long productId, Pageable pageable) {

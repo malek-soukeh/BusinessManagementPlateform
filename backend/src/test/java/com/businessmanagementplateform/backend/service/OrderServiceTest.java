@@ -43,6 +43,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.businessmanagementplateform.backend.entity.OrderItem;
+import com.businessmanagementplateform.backend.enums.StockMovementReason;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -66,6 +74,8 @@ class OrderServiceTest {
 
     @InjectMocks
     private OrderService orderService;
+    @Mock
+    private StockService stockService;
 
     private User user() {
         return User.builder().id(1L).email(EMAIL).build();
@@ -230,5 +240,173 @@ class OrderServiceTest {
         assertThat(result.totalElements()).isEqualTo(1);
         assertThat(result.content().get(0).orderNumber()).isEqualTo("ORD-2026-00005");
         assertThat(result.content().get(0).status()).isEqualTo("PENDING");
+    }
+    // ---------- changeStatus ----------
+
+    private OrderItem item(Product product, int quantity) {
+        return OrderItem.builder().product(product).quantity(quantity)
+                .unitPrice(product.getSellingPrice())
+                .subtotal(product.getSellingPrice().multiply(BigDecimal.valueOf(quantity))).build();
+    }
+
+    private Order orderWithStatus(OrderStatus status) {
+        Order order = existingOrder();
+        order.setStatus(status);
+        return order;
+    }
+
+    @Test
+    void changeStatus_confirm_movesTheStockOutForEveryItem() {
+        Order order = existingOrder();
+        Product laptop = product(7L, "PC001", 15, "2500.000", ProductStatus.ACTIVE);
+        Product screen = product(8L, "MON001", 20, "700.500", ProductStatus.ACTIVE);
+        order.addItem(item(laptop, 2));
+        order.addItem(item(screen, 1));
+        User user = user();
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(productRepository.findAllByIdForUpdate(anyCollection())).thenReturn(List.of(laptop, screen));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.changeStatus(5L, OrderStatus.CONFIRMED, EMAIL);
+
+        assertThat(response.status()).isEqualTo("CONFIRMED");
+        verify(stockService).applyOrderMovement(eq(laptop), eq(-2),
+                eq(StockMovementReason.ORDER_CONFIRMED), eq(5L), any(String.class), eq(user));
+        verify(stockService).applyOrderMovement(eq(screen), eq(-1),
+                eq(StockMovementReason.ORDER_CONFIRMED), eq(5L), any(String.class), eq(user));
+    }
+
+    @Test
+    void changeStatus_confirm_keepsTheOrderPending_whenStockIsInsufficient() {
+        Order order = existingOrder();
+        Product laptop = product(7L, "PC001", 1, "2500.000", ProductStatus.ACTIVE);
+        order.addItem(item(laptop, 2));
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user()));
+        when(productRepository.findAllByIdForUpdate(anyCollection())).thenReturn(List.of(laptop));
+        doThrow(new ConflictException("Insufficient stock for PC001: available 1, requested 2"))
+                .when(stockService).applyOrderMovement(any(), eq(-2), any(), any(), any(), any());
+
+        assertThatThrownBy(() -> orderService.changeStatus(5L, OrderStatus.CONFIRMED, EMAIL))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Insufficient stock");
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        verify(orderRepository, never()).saveAndFlush(any(Order.class));
+    }
+
+    @Test
+    void changeStatus_cancelConfirmed_putsTheStockBack() {
+        Order order = orderWithStatus(OrderStatus.CONFIRMED);
+        Product laptop = product(7L, "PC001", 13, "2500.000", ProductStatus.ACTIVE);
+        order.addItem(item(laptop, 2));
+        User user = user();
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(productRepository.findAllByIdForUpdate(anyCollection())).thenReturn(List.of(laptop));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.changeStatus(5L, OrderStatus.CANCELLED, EMAIL);
+
+        assertThat(response.status()).isEqualTo("CANCELLED");
+        verify(stockService).applyOrderMovement(eq(laptop), eq(2),
+                eq(StockMovementReason.ORDER_CANCELLED), eq(5L), any(String.class), eq(user));
+    }
+
+    @Test
+    void changeStatus_cancelPending_doesNotTouchTheStock() {
+        Order order = existingOrder();
+        order.addItem(item(product(7L, "PC001", 15, "2500.000", ProductStatus.ACTIVE), 2));
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.changeStatus(5L, OrderStatus.CANCELLED, EMAIL);
+
+        assertThat(response.status()).isEqualTo("CANCELLED");
+        verifyNoInteractions(stockService);
+        verify(productRepository, never()).findAllByIdForUpdate(anyCollection());
+    }
+
+    @Test
+    void changeStatus_shipThenDeliver_followsTheLifecycleWithoutTouchingTheStock() {
+        Order order = orderWithStatus(OrderStatus.CONFIRMED);
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(orderService.changeStatus(5L, OrderStatus.SHIPPED, EMAIL).status())
+                .isEqualTo("SHIPPED");
+        assertThat(orderService.changeStatus(5L, OrderStatus.DELIVERED, EMAIL).status())
+                .isEqualTo("DELIVERED");
+        verifyNoInteractions(stockService);
+    }
+
+    @ParameterizedTest(name = "{0} -> {1} is refused")
+    @CsvSource({
+            "PENDING,SHIPPED", "PENDING,DELIVERED", "PENDING,PENDING",
+            "CONFIRMED,PENDING", "CONFIRMED,DELIVERED",
+            "SHIPPED,CANCELLED", "SHIPPED,CONFIRMED",
+            "DELIVERED,CANCELLED", "DELIVERED,SHIPPED",
+            "CANCELLED,CONFIRMED"
+    })
+    void changeStatus_rejectsIllegalTransitions(OrderStatus from, OrderStatus to) {
+        Order order = orderWithStatus(from);
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.changeStatus(5L, to, EMAIL))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Cannot change order status from " + from + " to " + to);
+
+        assertThat(order.getStatus()).isEqualTo(from);
+        verifyNoInteractions(stockService);
+        verify(orderRepository, never()).saveAndFlush(any(Order.class));
+    }
+
+    @Test
+    void changeStatus_throwsNotFound_whenOrderMissing() {
+        when(orderRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.changeStatus(99L, OrderStatus.CONFIRMED, EMAIL))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    // ---------- update ----------
+
+    @Test
+    void update_replacesTheItemsAndRecomputesTheTotal() {
+        Order order = existingOrder();
+        order.addItem(item(product(7L, "PC001", 15, "2500.000", ProductStatus.ACTIVE), 1));
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(customerRepository.findById(3L)).thenReturn(Optional.of(customer(CustomerStatus.ACTIVE)));
+        when(productRepository.findById(8L))
+                .thenReturn(Optional.of(product(8L, "MON001", 20, "700.500", ProductStatus.ACTIVE)));
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.update(
+                5L, new CreateOrderRequest(3L, List.of(new OrderItemRequest(8L, 2))));
+
+        verify(orderRepository).flush();
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).productReference()).isEqualTo("MON001");
+        assertThat(response.items().get(0).quantity()).isEqualTo(2);
+        assertThat(response.totalAmount()).isEqualByComparingTo("1401.000");
+    }
+
+    @Test
+    void update_throwsConflict_whenTheOrderIsNotPending() {
+        when(orderRepository.findByIdForUpdate(5L))
+                .thenReturn(Optional.of(orderWithStatus(OrderStatus.SHIPPED)));
+
+        assertThatThrownBy(() -> orderService.update(
+                5L, new CreateOrderRequest(3L, List.of(new OrderItemRequest(8L, 2)))))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Only PENDING orders can be modified");
+        verify(orderRepository, never()).saveAndFlush(any(Order.class));
     }
 }

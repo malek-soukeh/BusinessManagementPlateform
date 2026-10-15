@@ -4,6 +4,7 @@ import com.businessmanagementplateform.backend.dto.CreateOrderRequest;
 import com.businessmanagementplateform.backend.dto.OrderResponse;
 import com.businessmanagementplateform.backend.dto.OrderSummaryResponse;
 import com.businessmanagementplateform.backend.dto.PageResponse;
+import com.businessmanagementplateform.backend.dto.UpdateOrderStatusRequest;
 import com.businessmanagementplateform.backend.enums.OrderStatus;
 import com.businessmanagementplateform.backend.service.OrderService;
 import jakarta.validation.Valid;
@@ -15,8 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,6 +56,21 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     public OrderResponse findById(@PathVariable Long id, Authentication authentication) {
         return orderService.findById(id, ownerFilter(authentication));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public OrderResponse update(@PathVariable Long id,
+                                @Valid @RequestBody CreateOrderRequest request) {
+        return orderService.update(id, request);
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public OrderResponse changeStatus(@PathVariable Long id,
+                                      @Valid @RequestBody UpdateOrderStatusRequest request,
+                                      Authentication authentication) {
+        return orderService.changeStatus(id, request.status(), authentication.getName());
     }
 
     /** ADMIN and MANAGER see every order; an EMPLOYEE only sees the orders he created. */

@@ -230,4 +230,52 @@ class StockServiceTest {
         assertThat(result.content()).hasSize(1);
         assertThat(result.content().get(0).productReference()).isEqualTo("PC001");
     }
+    // ---------- applyOrderMovement ----------
+
+    @Test
+    void applyOrderMovement_decreasesStockAndLinksTheMovementToTheOrder() {
+        Product existing = product(15);
+        User user = admin();
+
+        stockService.applyOrderMovement(existing, -2, StockMovementReason.ORDER_CONFIRMED,
+                5L, "Order ORD-2026-00005", user);
+
+        assertThat(existing.getQuantity()).isEqualTo(13);
+        verify(productRepository).saveAndFlush(existing);
+        StockMovement saved = captureSavedMovement().getValue();
+        assertThat(saved.getQuantityChange()).isEqualTo(-2);
+        assertThat(saved.getQuantityAfter()).isEqualTo(13);
+        assertThat(saved.getReason()).isEqualTo(StockMovementReason.ORDER_CONFIRMED);
+        assertThat(saved.getOrderId()).isEqualTo(5L);
+        assertThat(saved.getNote()).isEqualTo("Order ORD-2026-00005");
+        assertThat(saved.getCreatedBy()).isSameAs(user);
+    }
+
+    @Test
+    void applyOrderMovement_putsStockBackWhenTheChangeIsPositive() {
+        Product existing = product(13);
+
+        stockService.applyOrderMovement(existing, 2, StockMovementReason.ORDER_CANCELLED,
+                5L, "Order ORD-2026-00005", admin());
+
+        assertThat(existing.getQuantity()).isEqualTo(15);
+        StockMovement saved = captureSavedMovement().getValue();
+        assertThat(saved.getReason()).isEqualTo(StockMovementReason.ORDER_CANCELLED);
+        assertThat(saved.getQuantityAfter()).isEqualTo(15);
+    }
+
+    @Test
+    void applyOrderMovement_throwsConflict_whenStockIsInsufficient() {
+        Product existing = product(1);
+
+        assertThatThrownBy(() -> stockService.applyOrderMovement(existing, -2,
+                StockMovementReason.ORDER_CONFIRMED, 5L, "Order", admin()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Insufficient stock for PC001")
+                .hasMessageContaining("available 1, requested 2");
+
+        assertThat(existing.getQuantity()).isEqualTo(1);
+        verify(productRepository, never()).saveAndFlush(any(Product.class));
+        verify(stockMovementRepository, never()).save(any(StockMovement.class));
+    }
 }
