@@ -30,3 +30,6 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  invoice:
+    tax-rate: ${INVOICE_TAX_RATE:19}
+    payment-terms-days: ${INVOICE_PAYMENT_TERMS_DAYS:30}
