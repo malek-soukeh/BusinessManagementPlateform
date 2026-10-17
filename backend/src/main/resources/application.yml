@@ -33,3 +33,9 @@ app:
   invoice:
     tax-rate: ${INVOICE_TAX_RATE:19}
     payment-terms-days: ${INVOICE_PAYMENT_TERMS_DAYS:30}
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+    persist-authorization: true
