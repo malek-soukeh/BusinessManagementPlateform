@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.businessmanagementplateform.backend.enums.InvoiceStatus;
+import com.businessmanagementplateform.backend.repository.InvoiceRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +54,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final StockService stockService;
+    private final InvoiceRepository invoiceRepository;
     private final OrderMapper orderMapper;
 
     @Transactional
@@ -105,6 +108,10 @@ public class OrderService {
         if (newStatus == OrderStatus.CONFIRMED) {
             moveStock(order, userEmail, -1, StockMovementReason.ORDER_CONFIRMED);
         } else if (newStatus == OrderStatus.CANCELLED && current == OrderStatus.CONFIRMED) {
+            if (invoiceRepository.existsByOrderIdAndStatusNot(order.getId(), InvoiceStatus.CANCELLED)) {
+                throw new ConflictException("Cannot cancel order " + order.getOrderNumber()
+                        + ": it has an active invoice, cancel the invoice first");
+            }
             moveStock(order, userEmail, 1, StockMovementReason.ORDER_CANCELLED);
         }
 

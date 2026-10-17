@@ -257,4 +257,93 @@ class InvoiceServiceTest {
         assertThat(result.content().get(0).invoiceNumber()).isEqualTo("INV-2026-00009");
         assertThat(result.content().get(0).paymentStatus()).isEqualTo("UNPAID");
     }
+    // ---------- zero-amount invoice ----------
+
+    @Test
+    void generate_settlesTheInvoiceAtCreation_whenTheNetAmountIsZero() {
+        givenOrder(OrderStatus.CONFIRMED, "100.000");
+        givenSuccessfulSave();
+
+        InvoiceResponse response = invoiceService.generate(
+                new CreateInvoiceRequest(5L, new BigDecimal("100"), null));
+
+        assertThat(response.status()).isEqualTo("PAID");
+        assertThat(response.paymentStatus()).isEqualTo("PAID");
+    }
+
+    // ---------- cancel ----------
+
+    @ParameterizedTest(name = "an {0} invoice without payment can be cancelled")
+    @EnumSource(value = InvoiceStatus.class, names = {"ISSUED", "OVERDUE"})
+    void cancel_cancelsAnInvoiceWithoutPayments(InvoiceStatus status) {
+        Invoice invoice = invoice();
+        invoice.setStatus(status);
+        when(invoiceRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.saveAndFlush(any(Invoice.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(invoiceService.cancel(9L).status()).isEqualTo("CANCELLED");
+    }
+
+    @Test
+    void cancel_throwsConflict_whenTheInvoiceAlreadyHasPayments() {
+        Invoice invoice = invoice();
+        invoice.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
+        when(invoiceRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(invoice));
+
+        assertThatThrownBy(() -> invoiceService.cancel(9L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("already has payments");
+
+        assertThat(invoice.getStatus()).isEqualTo(InvoiceStatus.ISSUED);
+        verify(invoiceRepository, never()).saveAndFlush(any(Invoice.class));
+    }
+
+    @ParameterizedTest(name = "a {0} invoice cannot be cancelled")
+    @EnumSource(value = InvoiceStatus.class, names = {"PAID", "CANCELLED"})
+    void cancel_throwsConflict_whenTheInvoiceIsNotIssuedOrOverdue(InvoiceStatus status) {
+        Invoice invoice = invoice();
+        invoice.setStatus(status);
+        when(invoiceRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(invoice));
+
+        assertThatThrownBy(() -> invoiceService.cancel(9L))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("Cannot cancel an invoice with status " + status);
+        verify(invoiceRepository, never()).saveAndFlush(any(Invoice.class));
+    }
+
+    @Test
+    void cancel_throwsNotFound_whenTheInvoiceIsMissing() {
+        when(invoiceRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> invoiceService.cancel(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("99");
+    }
+
+    // ---------- markOverdue ----------
+
+    @Test
+    void markOverdue_flagsTheLateIssuedInvoices() {
+        Invoice late1 = invoice();
+        Invoice late2 = invoice();
+        when(invoiceRepository.findByStatusAndDueDateBefore(InvoiceStatus.ISSUED, TODAY))
+                .thenReturn(List.of(late1, late2));
+
+        int count = invoiceService.markOverdue();
+
+        assertThat(count).isEqualTo(2);
+        assertThat(late1.getStatus()).isEqualTo(InvoiceStatus.OVERDUE);
+        assertThat(late2.getStatus()).isEqualTo(InvoiceStatus.OVERDUE);
+        verify(invoiceRepository).saveAll(List.of(late1, late2));
+    }
+
+    @Test
+    void markOverdue_doesNothing_whenNoInvoiceIsLate() {
+        when(invoiceRepository.findByStatusAndDueDateBefore(InvoiceStatus.ISSUED, TODAY))
+                .thenReturn(List.of());
+
+        assertThat(invoiceService.markOverdue()).isZero();
+        verify(invoiceRepository, never()).saveAll(ArgumentMatchers.<Iterable<Invoice>>any());
+    }
 }

@@ -37,6 +37,11 @@ public class InvoiceController {
     public InvoiceResponse generate(@Valid @RequestBody CreateInvoiceRequest request) {
         return invoiceService.generate(request);
     }
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public InvoiceResponse cancel(@PathVariable Long id) {
+        return invoiceService.cancel(id);
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")

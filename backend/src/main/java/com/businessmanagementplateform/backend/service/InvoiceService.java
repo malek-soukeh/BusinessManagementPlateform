@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.List;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -87,7 +87,8 @@ public class InvoiceService {
         BigDecimal tax = taxable.multiply(taxRatePercent)
                 .divide(BigDecimal.valueOf(100), 3, RoundingMode.HALF_UP);
         BigDecimal total = taxable.add(tax);
-
+        // A zero-amount invoice (100 % discount) can never receive a payment: it is settled at creation.
+        boolean settled = total.signum() == 0;
         Invoice invoice = Invoice.builder()
                 .invoiceNumber(String.format("INV-%d-%05d", issueDate.getYear(),
                         invoiceRepository.nextInvoiceSequence()))
@@ -98,8 +99,8 @@ public class InvoiceService {
                 .taxAmount(tax)
                 .discount(discount)
                 .totalAmount(total)
-                .status(InvoiceStatus.ISSUED)
-                .paymentStatus(PaymentStatus.UNPAID)
+                .status(settled ? InvoiceStatus.PAID : InvoiceStatus.ISSUED)
+                .paymentStatus(settled ? PaymentStatus.PAID : PaymentStatus.UNPAID)
                 .build();
 
         return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice));
@@ -125,5 +126,34 @@ public class InvoiceService {
             throw new ResourceNotFoundException("Invoice not found with id " + id);
         }
         return invoiceMapper.toResponse(invoice);
+    }
+    @Transactional
+    public InvoiceResponse cancel(Long id) {
+        Invoice invoice = invoiceRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id " + id));
+
+        if (invoice.getStatus() != InvoiceStatus.ISSUED && invoice.getStatus() != InvoiceStatus.OVERDUE) {
+            throw new ConflictException("Cannot cancel an invoice with status " + invoice.getStatus());
+        }
+        if (invoice.getPaymentStatus() != PaymentStatus.UNPAID) {
+            throw new ConflictException(
+                    "Cannot cancel an invoice that already has payments: " + invoice.getInvoiceNumber());
+        }
+
+        invoice.setStatus(InvoiceStatus.CANCELLED);
+        return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice));
+    }
+
+    /** Flags the ISSUED invoices whose due date is past. Returns how many were flagged. */
+    @Transactional
+    public int markOverdue() {
+        List<Invoice> late = invoiceRepository.findByStatusAndDueDateBefore(
+                InvoiceStatus.ISSUED, LocalDate.now(clock));
+        if (late.isEmpty()) {
+            return 0;
+        }
+        late.forEach(invoice -> invoice.setStatus(InvoiceStatus.OVERDUE));
+        invoiceRepository.saveAll(late);
+        return late.size();
     }
 }

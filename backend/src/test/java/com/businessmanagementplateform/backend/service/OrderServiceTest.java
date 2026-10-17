@@ -51,7 +51,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
-
+import com.businessmanagementplateform.backend.enums.InvoiceStatus;
+import com.businessmanagementplateform.backend.repository.InvoiceRepository;
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
@@ -76,7 +77,8 @@ class OrderServiceTest {
     private OrderService orderService;
     @Mock
     private StockService stockService;
-
+    @Mock
+    private InvoiceRepository invoiceRepository;
     private User user() {
         return User.builder().id(1L).email(EMAIL).build();
     }
@@ -407,6 +409,21 @@ class OrderServiceTest {
                 5L, new CreateOrderRequest(3L, List.of(new OrderItemRequest(8L, 2)))))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Only PENDING orders can be modified");
+        verify(orderRepository, never()).saveAndFlush(any(Order.class));
+    }
+    @Test
+    void changeStatus_cancelConfirmed_isRefused_whenTheOrderHasAnActiveInvoice() {
+        Order order = orderWithStatus(OrderStatus.CONFIRMED);
+        order.addItem(item(product(7L, "PC001", 13, "2500.000", ProductStatus.ACTIVE), 2));
+        when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
+        when(invoiceRepository.existsByOrderIdAndStatusNot(5L, InvoiceStatus.CANCELLED)).thenReturn(true);
+
+        assertThatThrownBy(() -> orderService.changeStatus(5L, OrderStatus.CANCELLED, EMAIL))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("active invoice");
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        verifyNoInteractions(stockService);
         verify(orderRepository, never()).saveAndFlush(any(Order.class));
     }
 }
