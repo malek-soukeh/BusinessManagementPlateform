@@ -14,5 +14,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("select sum(p.amount) from Payment p where p.invoice.id = :invoiceId")
     BigDecimal sumAmountByInvoiceId(@Param("invoiceId") Long invoiceId);
 
+    /** Sum of every payment, or null when there is none. */
+    @Query("select sum(p.amount) from Payment p")
+    BigDecimal sumAllAmounts();
+
     List<Payment> findByInvoiceIdOrderByPaymentDateDescIdDesc(Long invoiceId);
 }

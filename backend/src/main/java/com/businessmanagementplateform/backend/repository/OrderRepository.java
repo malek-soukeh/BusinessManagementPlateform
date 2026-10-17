@@ -1,6 +1,7 @@
 package com.businessmanagementplateform.backend.repository;
 
 import com.businessmanagementplateform.backend.entity.Order;
+import com.businessmanagementplateform.backend.enums.OrderStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from CustomerOrder o where o.id = :id")
     Optional<Order> findByIdForUpdate(@Param("id") Long id);
+
+    long countByStatus(OrderStatus status);
+
+    long countByStatusAndCreatedByEmailIgnoreCase(OrderStatus status, String email);
 
     @Override
     @EntityGraph(attributePaths = {"customer", "createdBy"})

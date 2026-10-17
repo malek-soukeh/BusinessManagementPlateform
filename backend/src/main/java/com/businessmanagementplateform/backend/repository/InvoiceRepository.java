@@ -13,7 +13,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +33,14 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from Invoice i where i.id = :id")
     Optional<Invoice> findByIdForUpdate(@Param("id") Long id);
+
+    long countByStatus(InvoiceStatus status);
+
+    long countByStatusAndOrder_CreatedBy_EmailIgnoreCase(InvoiceStatus status, String email);
+
+    /** Sum of the invoice totals for the given statuses, or null when there is none. */
+    @Query("select sum(i.totalAmount) from Invoice i where i.status in :statuses")
+    BigDecimal sumTotalByStatusIn(@Param("statuses") Collection<InvoiceStatus> statuses);
 
     @Override
     @EntityGraph(attributePaths = {"order", "order.customer", "order.createdBy"})
