@@ -1,22 +1,51 @@
-import { Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, inject } from '@angular/core';
 
-import { AuthService } from '../../core/services/auth.service';
+import { DashboardStats } from '../../core/models/dashboard.models';
+import { DashboardService } from '../../core/services/dashboard.service';
+import { extractErrorMessage } from '../../core/utils/http-error.util';
 
-/** Temporary landing page: it proves that login, token and guards work. The real dashboard comes later. */
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent {
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
+export class DashboardComponent implements OnInit {
+  private readonly dashboard = inject(DashboardService);
 
-  readonly profile$ = this.auth.me();
+  readonly orderStatuses = [
+    { key: 'PENDING', label: 'En attente' },
+    { key: 'CONFIRMED', label: 'Confirmées' },
+    { key: 'SHIPPED', label: 'Expédiées' },
+    { key: 'DELIVERED', label: 'Livrées' },
+    { key: 'CANCELLED', label: 'Annulées' }
+  ];
 
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
+  loading = true;
+  errorMessage: string | null = null;
+  stats: DashboardStats | null = null;
+
+  ngOnInit(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading = true;
+    this.errorMessage = null;
+
+    this.dashboard.getStats().subscribe({
+      next: stats => {
+        this.stats = stats;
+        this.loading = false;
+      },
+      error: (error: unknown) => {
+        this.loading = false;
+        this.errorMessage = extractErrorMessage(error, 'Impossible de charger le tableau de bord.');
+      }
+    });
+  }
+
+  /** Share of the orders in a given status, in percent, to size the bars. */
+  percent(count: number, total: number): number {
+    return total === 0 ? 0 : Math.round((count * 100) / total);
   }
 }

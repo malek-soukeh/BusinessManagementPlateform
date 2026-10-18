@@ -1,0 +1,75 @@
+.shell {
+  height: 100vh;
+}
+
+.sidenav {
+  width: 248px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 16px 12px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.title {
+  margin-left: 4px;
+  font-size: 16px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 8px;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: 14px;
+}
+
+.user-role {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.content {
+  padding: 24px;
+}
+
+.active {
+  background: rgba(63, 81, 181, 0.12);
+}
+
+.nav-soon {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.soon-tag {
+  font-size: 11px;
+}
+
+@media (max-width: 599px) {
+  .title {
+    display: none;
+  }
+
+  .content {
+    padding: 16px;
+  }
+}

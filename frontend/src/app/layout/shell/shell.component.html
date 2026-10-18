@@ -1,0 +1,69 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    #drawer
+    class="sidenav"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'"
+    [opened]="(isHandset$ | async) === false"
+    [fixedInViewport]="true"
+  >
+    <div class="brand">
+      <mat-icon>business_center</mat-icon>
+      <span>TechDistrib</span>
+    </div>
+
+    <mat-nav-list>
+      <ng-container *ngFor="let item of navItems">
+        <a
+          *ngIf="!item.comingSoon; else soon"
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          (click)="drawer.mode === 'over' && drawer.close()"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle class="nav-label">{{ item.label }}</span>
+        </a>
+
+        <ng-template #soon>
+          <a mat-list-item class="nav-soon" aria-disabled="true">
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle class="nav-label">{{ item.label }}</span>
+            <span matListItemLine class="soon-tag">bientôt</span>
+          </a>
+        </ng-template>
+      </ng-container>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary" class="toolbar">
+      <button
+        *ngIf="isHandset$ | async"
+        mat-icon-button
+        type="button"
+        aria-label="Ouvrir le menu"
+        (click)="drawer.toggle()"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="title">Business Management Platform</span>
+      <span class="spacer"></span>
+
+      <ng-container *ngIf="profile$ | async as profile">
+        <div class="user">
+          <span class="user-name">{{ profile.firstName }} {{ profile.lastName }}</span>
+          <span class="user-role">{{ roleLabels[profile.role] }}</span>
+        </div>
+      </ng-container>
+
+      <button id="logout-button" mat-icon-button type="button" aria-label="Se déconnecter" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
