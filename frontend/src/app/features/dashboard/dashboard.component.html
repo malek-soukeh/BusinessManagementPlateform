@@ -88,9 +88,9 @@
         <div class="status-row" *ngFor="let status of orderStatuses">
           <span class="status-label">{{ status.label }}</span>
           <div class="bar">
-            <div class="bar-fill" [style.width.%]="percent(s.ordersByStatus[status.key] ?? 0, s.totalOrders)"></div>
+            <div class="bar-fill" [style.width.%]="percent(s.ordersByStatus[status.key] || 0, s.totalOrders)"></div>
           </div>
-          <span class="status-count">{{ s.ordersByStatus[status.key] ?? 0 }}</span>
+          <span class="status-count">{{ s.ordersByStatus[status.key] || 0 }}</span>
         </div>
       </mat-card-content>
     </mat-card>

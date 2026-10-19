@@ -85,10 +85,9 @@ describe('ShellComponent', () => {
   it('only links the pages that exist', () => {
     const fixture = create('ADMIN');
 
-    const links = fixture.nativeElement.querySelectorAll('mat-nav-list a[href]');
+    const links = Array.from<Element>(fixture.nativeElement.querySelectorAll('mat-nav-list a[href]'));
 
-    expect(links.length).toBe(1);
-    expect(links[0].getAttribute('href')).toBe('/dashboard');
+    expect(links.map(link => link.getAttribute('href'))).toEqual(['/dashboard', '/customers']);
   });
 
   it('keeps working when the profile cannot be loaded', () => {
