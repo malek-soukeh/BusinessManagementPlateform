@@ -1,11 +1,12 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
+import { roleGuard } from '../core/guards/role.guard';
 import { SharedModule } from '../shared/shared.module';
 import { ShellComponent } from './shell/shell.component';
 
 /** Every page of a logged-in user lives under the shell. New feature modules are added as children. */
-const routes: Routes = [
+export const layoutRoutes: Routes = [
   {
     path: '',
     component: ShellComponent,
@@ -19,6 +20,11 @@ const routes: Routes = [
         path: 'customers',
         loadChildren: () => import('../features/customers/customers.module').then(m => m.CustomersModule)
       },
+      {
+        path: 'categories',
+        canActivate: [roleGuard(['ADMIN', 'MANAGER'])],
+        loadChildren: () => import('../features/categories/categories.module').then(m => m.CategoriesModule)
+      },
       { path: '**', redirectTo: 'dashboard' }
     ]
   }
@@ -26,6 +32,6 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [ShellComponent],
-  imports: [SharedModule, RouterModule.forChild(routes)]
+  imports: [SharedModule, RouterModule.forChild(layoutRoutes)]
 })
 export class LayoutModule {}
