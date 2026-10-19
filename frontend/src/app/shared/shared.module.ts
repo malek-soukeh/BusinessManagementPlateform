@@ -4,6 +4,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatPaginatorIntl } from '@angular/material/paginator';
 
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
+import { SkeletonComponent } from './components/skeleton/skeleton.component';
+import { CountUpDirective } from './directives/count-up.directive';
 import { frenchPaginatorIntl } from './french-paginator-intl';
 import { MaterialModule } from './material.module';
 
@@ -13,9 +15,11 @@ import { MaterialModule } from './material.module';
  * the initial bundle.
  */
 @NgModule({
-  declarations: [ConfirmDialogComponent],
+  declarations: [ConfirmDialogComponent, SkeletonComponent, CountUpDirective],
   imports: [CommonModule, ReactiveFormsModule, MaterialModule],
   providers: [{ provide: MatPaginatorIntl, useFactory: frenchPaginatorIntl }],
-  exports: [CommonModule, ReactiveFormsModule, MaterialModule, ConfirmDialogComponent]
+  exports: [
+    CommonModule, ReactiveFormsModule, MaterialModule, ConfirmDialogComponent, SkeletonComponent, CountUpDirective
+  ]
 })
 export class SharedModule {}

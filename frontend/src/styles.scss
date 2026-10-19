@@ -1,4 +1,255 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+/* ---------- Angular Material theme: light by default, dark under body.dark-theme ---------- */
+
+$typography: mat.define-typography-config();
+
+$light-theme: mat.define-light-theme((
+  color: (
+    primary: mat.define-palette(mat.$indigo-palette),
+    accent: mat.define-palette(mat.$teal-palette, A700),
+    warn: mat.define-palette(mat.$red-palette, 700)
+  ),
+  typography: $typography,
+  density: 0
+));
+
+$dark-theme: mat.define-dark-theme((
+  color: (
+    primary: mat.define-palette(mat.$indigo-palette, 200),
+    accent: mat.define-palette(mat.$teal-palette, A200),
+    warn: mat.define-palette(mat.$red-palette, 300)
+  )
+));
+
+/*
+ * Only the Material components the application uses are themed, to keep the initial CSS small.
+ * A component added to MaterialModule must also be added to both mixins below.
+ */
+@mixin component-themes($theme) {
+  @include mat.core-theme($theme);
+  @include mat.button-theme($theme);
+  @include mat.card-theme($theme);
+  @include mat.dialog-theme($theme);
+  @include mat.form-field-theme($theme);
+  @include mat.icon-button-theme($theme);
+  @include mat.icon-theme($theme);
+  @include mat.input-theme($theme);
+  @include mat.list-theme($theme);
+  @include mat.paginator-theme($theme);
+  @include mat.progress-bar-theme($theme);
+  @include mat.progress-spinner-theme($theme);
+  @include mat.select-theme($theme);
+  @include mat.sidenav-theme($theme);
+  @include mat.snack-bar-theme($theme);
+  @include mat.table-theme($theme);
+  @include mat.toolbar-theme($theme);
+  @include mat.tooltip-theme($theme);
+}
+
+@mixin component-colors($theme) {
+  @include mat.core-color($theme);
+  @include mat.button-color($theme);
+  @include mat.card-color($theme);
+  @include mat.dialog-color($theme);
+  @include mat.form-field-color($theme);
+  @include mat.icon-button-color($theme);
+  @include mat.icon-color($theme);
+  @include mat.input-color($theme);
+  @include mat.list-color($theme);
+  @include mat.paginator-color($theme);
+  @include mat.progress-bar-color($theme);
+  @include mat.progress-spinner-color($theme);
+  @include mat.select-color($theme);
+  @include mat.sidenav-color($theme);
+  @include mat.snack-bar-color($theme);
+  @include mat.table-color($theme);
+  @include mat.toolbar-color($theme);
+  @include mat.tooltip-color($theme);
+}
+
+@include mat.core();
+@include component-themes($light-theme);
+@include mat.typography-hierarchy($typography);
+
+.dark-theme {
+  @include component-colors($dark-theme);
+}
+
+/* ---------- Design tokens: every custom color goes through these variables ---------- */
+
+:root {
+  color-scheme: light;
+  --app-bg: #f4f5fa;
+  --app-surface: #ffffff;
+  --app-text: rgba(0, 0, 0, 0.87);
+  --app-muted: rgba(0, 0, 0, 0.62);
+  --app-border: rgba(0, 0, 0, 0.12);
+  --app-primary: #3f51b5;
+  --app-primary-soft: rgba(63, 81, 181, 0.12);
+  --app-success: #1b7a32;
+  --app-success-soft: rgba(27, 122, 50, 0.12);
+  --app-warning: #8a5300;
+  --app-warning-soft: rgba(245, 158, 11, 0.18);
+  --app-danger: #c62828;
+  --app-danger-soft: rgba(198, 40, 40, 0.12);
+  --app-info: #01579b;
+  --app-info-soft: rgba(2, 119, 189, 0.12);
+  --app-skeleton: rgba(0, 0, 0, 0.08);
+  --app-skeleton-shine: rgba(255, 255, 255, 0.65);
+
+  --chart-pending: #f59e0b;
+  --chart-confirmed: #3b82f6;
+  --chart-shipped: #8b5cf6;
+  --chart-delivered: #16a34a;
+  --chart-cancelled: #94a3b8;
+  --chart-collected: #16a34a;
+  --chart-outstanding: #f59e0b;
+  --chart-track: #e5e7eb;
+}
+
+.dark-theme {
+  color-scheme: dark;
+  --app-bg: #121318;
+  --app-surface: #1e1f26;
+  --app-text: rgba(255, 255, 255, 0.92);
+  --app-muted: rgba(255, 255, 255, 0.68);
+  --app-border: rgba(255, 255, 255, 0.14);
+  --app-primary: #9fa8da;
+  --app-primary-soft: rgba(159, 168, 218, 0.16);
+  --app-success: #81c995;
+  --app-success-soft: rgba(129, 201, 149, 0.16);
+  --app-warning: #ffcc80;
+  --app-warning-soft: rgba(255, 204, 128, 0.16);
+  --app-danger: #ff8a80;
+  --app-danger-soft: rgba(255, 138, 128, 0.16);
+  --app-info: #81d4fa;
+  --app-info-soft: rgba(129, 212, 250, 0.16);
+  --app-skeleton: rgba(255, 255, 255, 0.08);
+  --app-skeleton-shine: rgba(255, 255, 255, 0.14);
+
+  --chart-pending: #fbbf24;
+  --chart-confirmed: #60a5fa;
+  --chart-shipped: #a78bfa;
+  --chart-delivered: #4ade80;
+  --chart-cancelled: #94a3b8;
+  --chart-collected: #4ade80;
+  --chart-outstanding: #fbbf24;
+  --chart-track: #2d2f39;
+}
+
+/* ---------- Global base ---------- */
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.mat-drawer-container {
+  background-color: var(--app-bg);
+}
+
+/* Visually hidden but read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Status chips shared by every list (orders, invoices, products...). */
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+
+  &.tone-success { background: var(--app-success-soft); color: var(--app-success); }
+  &.tone-warning { background: var(--app-warning-soft); color: var(--app-warning); }
+  &.tone-danger { background: var(--app-danger-soft); color: var(--app-danger); }
+  &.tone-info { background: var(--app-info-soft); color: var(--app-info); }
+  &.tone-muted { background: var(--app-skeleton); color: var(--app-muted); }
+}
+
+/* Card-like block used by the pages (dashboard panels, detail sections...). */
+.panel {
+  padding: 16px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: var(--app-surface);
+}
+
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.panel-title { margin: 0 0 12px; font-size: 16px; font-weight: 500; }
+.panel-head .panel-title { margin: 0; }
+
+.error-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  color: var(--app-danger);
+
+  .error-message { flex: 1 1 200px; }
+}
+
+/* Informative line with an icon: empty states, notices. */
+.notice, .empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-muted);
+  font-size: 14px;
+}
+
+/* Short list of records with a main and a side column (dashboard lists...). */
+.compact-list { margin: 8px 0 0; padding: 0; list-style: none; }
+
+.compact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--app-border);
+
+  &:first-child { border-top: none; }
+}
+
+.compact-main, .compact-side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.compact-side { align-items: flex-end; flex: none; }
+.compact-title { font-weight: 500; }
+
+.compact-sub {
+  font-size: 12px;
+  color: var(--app-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-amount { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

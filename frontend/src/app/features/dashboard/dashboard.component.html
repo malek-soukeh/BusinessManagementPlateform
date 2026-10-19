@@ -1,98 +1,244 @@
-<div class="page">
-  <div class="header">
-    <h1>Tableau de bord</h1>
-    <button mat-stroked-button type="button" (click)="load()" [disabled]="loading">
-      <mat-icon>refresh</mat-icon>
+<div class="page" [@.disabled]="reducedMotion">
+  <header class="header">
+    <div>
+      <h1>Tableau de bord</h1>
+      <p class="subtitle">
+        {{ isEmployee ? 'Votre activité' : "Vue d'ensemble de l'activité" }}
+        <span class="updated" *ngIf="lastUpdated">· Mis à jour à {{ lastUpdated | date: 'HH:mm' }}</span>
+      </p>
+    </div>
+    <button
+      id="refresh-button"
+      mat-stroked-button
+      type="button"
+      (click)="refresh()"
+      [disabled]="refreshing"
+    >
+      <mat-icon [class.spin]="refreshing">refresh</mat-icon>
       Actualiser
     </button>
+  </header>
+
+  <mat-progress-bar
+    class="refresh-bar"
+    mode="indeterminate"
+    *ngIf="refreshing && stats.data"
+    aria-label="Actualisation en cours"
+  ></mat-progress-bar>
+
+  <!-- Key figures -->
+  <div class="panel error-panel" role="alert" *ngIf="stats.error">
+    <mat-icon aria-hidden="true">cloud_off</mat-icon>
+    <span class="error-message">{{ stats.error }}</span>
+    <button mat-flat-button color="primary" type="button" class="retry" (click)="refresh()">Réessayer</button>
   </div>
 
-  <div class="loading" *ngIf="loading && !stats">
-    <mat-spinner diameter="40"></mat-spinner>
-  </div>
+  <section
+    class="kpi-grid"
+    aria-label="Indicateurs clés"
+    *ngIf="stats.data; else kpiSkeleton"
+    [@staggerIn]="kpis.length"
+  >
+    <app-kpi-card *ngFor="let kpi of kpis; trackBy: trackById" [kpi]="kpi"></app-kpi-card>
+  </section>
 
-  <mat-card class="error-card" *ngIf="errorMessage">
-    <mat-card-content class="error-message">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{ errorMessage }}</span>
-    </mat-card-content>
-    <mat-card-actions>
-      <button mat-button color="primary" type="button" (click)="load()">Réessayer</button>
-    </mat-card-actions>
-  </mat-card>
-
-  <ng-container *ngIf="stats as s">
-    <section class="grid">
-      <mat-card class="kpi">
-        <mat-icon>people</mat-icon>
-        <span class="kpi-label">Clients actifs</span>
-        <span class="kpi-value">{{ s.totalCustomers }}</span>
-      </mat-card>
-
-      <mat-card class="kpi">
-        <mat-icon>devices</mat-icon>
-        <span class="kpi-label">Produits actifs</span>
-        <span class="kpi-value">{{ s.totalProducts }}</span>
-      </mat-card>
-
-      <mat-card class="kpi" [class.warn]="s.lowStockProducts > 0">
-        <mat-icon>warning</mat-icon>
-        <span class="kpi-label">Stock faible</span>
-        <span class="kpi-value">{{ s.lowStockProducts }}</span>
-      </mat-card>
-
-      <mat-card class="kpi">
-        <mat-icon>shopping_cart</mat-icon>
-        <span class="kpi-label">Commandes</span>
-        <span class="kpi-value">{{ s.totalOrders }}</span>
-        <span class="kpi-sub">{{ s.pendingOrders }} en attente</span>
-      </mat-card>
-
-      <mat-card class="kpi" [class.warn]="s.overdueInvoices > 0">
-        <mat-icon>receipt_long</mat-icon>
-        <span class="kpi-label">Factures impayées</span>
-        <span class="kpi-value">{{ s.unpaidInvoices }}</span>
-        <span class="kpi-sub">{{ s.overdueInvoices }} en retard</span>
-      </mat-card>
+  <ng-template #kpiSkeleton>
+    <section class="kpi-grid" *ngIf="!stats.error" aria-busy="true" aria-label="Chargement des indicateurs">
+      <div class="panel kpi-skeleton" *ngFor="let card of skeletonCards">
+        <app-skeleton width="55%" height="14px"></app-skeleton>
+        <app-skeleton width="75%" height="28px"></app-skeleton>
+        <app-skeleton width="45%" height="12px"></app-skeleton>
+      </div>
     </section>
+  </ng-template>
 
-    <section class="grid" *ngIf="s.totalRevenue !== null; else noMoney">
-      <mat-card class="kpi">
-        <mat-icon>payments</mat-icon>
-        <span class="kpi-label">Chiffre d'affaires (TTC)</span>
-        <span class="money-value">{{ s.totalRevenue | number: '1.3-3' }} TND</span>
-      </mat-card>
+  <p class="notice" *ngIf="stats.data && !hasMoney">
+    <mat-icon aria-hidden="true">lock</mat-icon>
+    Les montants financiers sont réservés aux administrateurs et aux managers.
+  </p>
 
-      <mat-card class="kpi">
-        <mat-icon>account_balance_wallet</mat-icon>
-        <span class="kpi-label">Encaissé</span>
-        <span class="money-value">{{ s.totalCollected | number: '1.3-3' }} TND</span>
-      </mat-card>
+  <!-- Charts -->
+  <section class="charts" *ngIf="!stats.error">
+    <article class="panel">
+      <h2 class="panel-title">Commandes par statut</h2>
 
-      <mat-card class="kpi" [class.warn]="(s.totalOutstanding ?? 0) > 0">
-        <mat-icon>hourglass_empty</mat-icon>
-        <span class="kpi-label">Reste à encaisser</span>
-        <span class="money-value">{{ s.totalOutstanding | number: '1.3-3' }} TND</span>
-      </mat-card>
-    </section>
-
-    <ng-template #noMoney>
-      <p class="notice">Les montants financiers sont réservés aux administrateurs et aux managers.</p>
-    </ng-template>
-
-    <mat-card class="statuses">
-      <mat-card-header>
-        <mat-card-title>Commandes par statut</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="status-row" *ngFor="let status of orderStatuses">
-          <span class="status-label">{{ status.label }}</span>
-          <div class="bar">
-            <div class="bar-fill" [style.width.%]="percent(s.ordersByStatus[status.key] || 0, s.totalOrders)"></div>
+      <ng-container *ngIf="stats.data as s; else chartSkeleton">
+        <div class="chart-body" *ngIf="s.totalOrders > 0 && ordersChart as chart; else noOrders" @fadeIn>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              [type]="'doughnut'"
+              [data]="chart.data"
+              [options]="chart.options"
+              role="img"
+              [attr.aria-label]="chart.description"
+            ></canvas>
+            <div class="chart-center" aria-hidden="true">
+              <strong>{{ s.totalOrders | number }}</strong>
+              <span>commande{{ s.totalOrders > 1 ? 's' : '' }}</span>
+            </div>
           </div>
-          <span class="status-count">{{ s.ordersByStatus[status.key] || 0 }}</span>
+          <ul class="legend">
+            <li *ngFor="let item of chart.legend">
+              <span class="swatch" [style.background]="item.color" aria-hidden="true"></span>
+              <span class="legend-label">{{ item.label }}</span>
+              <span class="legend-value">{{ item.value | number }}</span>
+              <span class="legend-percent">{{ item.percent | number: '1.0-0' }} %</span>
+            </li>
+          </ul>
         </div>
-      </mat-card-content>
-    </mat-card>
-  </ng-container>
+      </ng-container>
+
+      <ng-template #noOrders>
+        <p class="empty"><mat-icon aria-hidden="true">shopping_cart</mat-icon>Aucune commande pour le moment.</p>
+      </ng-template>
+    </article>
+
+    <article class="panel" *ngIf="hasMoney || (!stats.data && !isEmployee)">
+      <h2 class="panel-title">Encaissement</h2>
+
+      <ng-container *ngIf="stats.data; else chartSkeleton">
+        <div class="chart-body" *ngIf="collection as chart; else noRevenue" @fadeIn>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              [type]="'doughnut'"
+              [data]="chart.data"
+              [options]="chart.options"
+              role="img"
+              [attr.aria-label]="chart.description"
+            ></canvas>
+            <div class="chart-center" aria-hidden="true">
+              <strong>{{ collectionRate | number: '1.0-0' }} %</strong>
+              <span>encaissé</span>
+            </div>
+          </div>
+          <ul class="legend">
+            <li *ngFor="let item of chart.legend">
+              <span class="swatch" [style.background]="item.color" aria-hidden="true"></span>
+              <span class="legend-label">{{ item.label }}</span>
+              <span class="legend-value">{{ item.value | number: '1.3-3' }} TND</span>
+            </li>
+          </ul>
+        </div>
+      </ng-container>
+
+      <ng-template #noRevenue>
+        <p class="empty"><mat-icon aria-hidden="true">receipt_long</mat-icon>Aucune facture émise pour le moment.</p>
+      </ng-template>
+    </article>
+  </section>
+
+  <ng-template #chartSkeleton>
+    <div class="chart-body" aria-hidden="true">
+      <app-skeleton class="chart-skeleton" width="180px" height="180px" radius="50%"></app-skeleton>
+      <div class="legend">
+        <app-skeleton *ngFor="let row of skeletonRows" width="100%" height="14px"></app-skeleton>
+      </div>
+    </div>
+  </ng-template>
+
+  <!-- Short lists -->
+  <section class="lists">
+    <article class="panel list-panel" id="recent-orders">
+      <div class="panel-head">
+        <h2 class="panel-title">{{ isEmployee ? 'Mes dernières commandes' : 'Dernières commandes' }}</h2>
+        <a mat-button color="primary" *ngIf="routes.orders" [routerLink]="routes.orders">Tout voir</a>
+      </div>
+
+      <ng-container
+        [ngTemplateOutlet]="listState"
+        [ngTemplateOutletContext]="{ $implicit: orders, empty: 'Aucune commande pour le moment.' }"
+      ></ng-container>
+
+      <ul class="compact-list" *ngIf="orders.data?.length" @fadeIn>
+        <li class="compact-row" *ngFor="let order of orders.data; trackBy: trackById">
+          <div class="compact-main">
+            <span class="compact-title">{{ order.orderNumber }}</span>
+            <span class="compact-sub">{{ order.customerName }} · {{ order.orderDate | date: 'd MMM y' }}</span>
+          </div>
+          <div class="compact-side">
+            <span class="compact-amount">{{ order.totalAmount | number: '1.3-3' }} TND</span>
+            <span class="status-chip" [ngClass]="'tone-' + orderStatusTones[order.status]">
+              {{ orderStatusLabels[order.status] }}
+            </span>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <article class="panel list-panel" id="overdue-invoices">
+      <div class="panel-head">
+        <h2 class="panel-title">Factures en retard</h2>
+        <a mat-button color="primary" *ngIf="routes.invoices" [routerLink]="routes.invoices">Tout voir</a>
+      </div>
+
+      <ng-container
+        [ngTemplateOutlet]="listState"
+        [ngTemplateOutletContext]="{ $implicit: overdue, empty: 'Aucune facture en retard.' }"
+      ></ng-container>
+
+      <ul class="compact-list" *ngIf="overdue.data?.length" @fadeIn>
+        <li class="compact-row" *ngFor="let invoice of overdue.data; trackBy: trackById">
+          <div class="compact-main">
+            <span class="compact-title">{{ invoice.invoiceNumber }}</span>
+            <span class="compact-sub">{{ invoice.customerName }} · échue le {{ invoice.dueDate | date: 'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="compact-side">
+            <span class="compact-amount">{{ invoice.totalAmount | number: '1.3-3' }} TND</span>
+            <span class="status-chip tone-danger">{{ daysLate(invoice.dueDate) }} j de retard</span>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <article class="panel list-panel" id="low-stock">
+      <div class="panel-head">
+        <h2 class="panel-title">Produits en stock bas</h2>
+        <a mat-button color="primary" *ngIf="routes.products" [routerLink]="routes.products">Tout voir</a>
+      </div>
+
+      <ng-container
+        [ngTemplateOutlet]="listState"
+        [ngTemplateOutletContext]="{ $implicit: lowStock, empty: 'Tous les stocks sont au-dessus du seuil minimum.' }"
+      ></ng-container>
+
+      <ul class="compact-list" *ngIf="lowStock.data?.length" @fadeIn>
+        <li class="compact-row" *ngFor="let product of lowStock.data; trackBy: trackById">
+          <div class="compact-main">
+            <span class="compact-title">{{ product.name }}</span>
+            <span class="compact-sub">{{ product.reference }} · {{ product.categoryName }}</span>
+          </div>
+          <div class="compact-side">
+            <span class="compact-amount">{{ product.quantity }} / {{ product.minimumStock }} min.</span>
+            <span class="status-chip" [ngClass]="product.quantity === 0 ? 'tone-danger' : 'tone-warning'">
+              {{ product.quantity === 0 ? 'Rupture' : 'Stock bas' }}
+            </span>
+          </div>
+        </li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- Loading, error and empty states shared by the three lists -->
+  <ng-template #listState let-section let-empty="empty">
+    <div class="compact-list" *ngIf="section.loading && !section.data" aria-busy="true">
+      <div class="compact-row" *ngFor="let row of skeletonRows">
+        <div class="compact-main">
+          <app-skeleton width="45%" height="14px"></app-skeleton>
+          <app-skeleton width="70%" height="12px"></app-skeleton>
+        </div>
+        <app-skeleton width="80px" height="20px" radius="10px"></app-skeleton>
+      </div>
+    </div>
+
+    <div class="list-error" role="alert" *ngIf="section.error">
+      <span>{{ section.error }}</span>
+      <button mat-button color="primary" type="button" (click)="refresh()">Réessayer</button>
+    </div>
+
+    <p class="empty" *ngIf="section.data && section.data.length === 0">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>{{ empty }}
+    </p>
+  </ng-template>
 </div>

@@ -57,13 +57,24 @@
         </div>
       </ng-container>
 
+      <button
+        id="theme-button"
+        mat-icon-button
+        type="button"
+        [attr.aria-label]="theme.isDark ? 'Activer le mode clair' : 'Activer le mode sombre'"
+        [matTooltip]="theme.isDark ? 'Mode clair' : 'Mode sombre'"
+        (click)="theme.toggle()"
+      >
+        <mat-icon>{{ theme.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
       <button id="logout-button" mat-icon-button type="button" aria-label="Se déconnecter" (click)="logout()">
         <mat-icon>logout</mat-icon>
       </button>
     </mat-toolbar>
 
-    <main class="content">
-      <router-outlet></router-outlet>
+    <main class="content" [@routeFade]="routeKey(outlet)" [@.disabled]="reducedMotion">
+      <router-outlet #outlet="outlet"></router-outlet>
     </main>
   </mat-sidenav-content>
 </mat-sidenav-container>

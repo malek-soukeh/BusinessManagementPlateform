@@ -1,0 +1,35 @@
+<a *ngIf="kpi.link; else plain" class="kpi" [ngClass]="'tone-' + kpi.tone" [routerLink]="kpi.link">
+  <ng-container [ngTemplateOutlet]="body"></ng-container>
+</a>
+
+<ng-template #plain>
+  <div class="kpi" [ngClass]="'tone-' + kpi.tone">
+    <ng-container [ngTemplateOutlet]="body"></ng-container>
+  </div>
+</ng-template>
+
+<ng-template #body>
+  <div class="kpi-top">
+    <span class="kpi-label">{{ kpi.label }}</span>
+    <span class="kpi-icon" aria-hidden="true"><mat-icon>{{ kpi.icon }}</mat-icon></span>
+  </div>
+
+  <span class="kpi-value" [appCountUp]="kpi.value" [decimals]="kpi.decimals ?? 0" [suffix]="kpi.suffix ?? ''"></span>
+
+  <div
+    *ngIf="kpi.progress !== undefined && kpi.progress !== null"
+    class="kpi-gauge"
+    role="progressbar"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    [attr.aria-valuenow]="kpi.progress | number: '1.0-0'"
+    [attr.aria-label]="kpi.label"
+  >
+    <span [style.width.%]="kpi.progress"></span>
+  </div>
+
+  <span *ngIf="kpi.hint" class="kpi-hint" [class.alert]="kpi.alert">
+    <mat-icon *ngIf="kpi.alert" aria-hidden="true">error</mat-icon>
+    {{ kpi.hint }}
+  </span>
+</ng-template>
