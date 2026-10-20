@@ -208,7 +208,10 @@
       <ul class="compact-list" *ngIf="lowStock.data?.length" @fadeIn>
         <li class="compact-row" *ngFor="let product of lowStock.data; trackBy: trackById">
           <div class="compact-main">
-            <span class="compact-title">{{ product.name }}</span>
+            <a class="compact-title" *ngIf="routes.inventory; else productName" [routerLink]="[routes.inventory, product.id]">
+              {{ product.name }}
+            </a>
+            <ng-template #productName><span class="compact-title">{{ product.name }}</span></ng-template>
             <span class="compact-sub">{{ product.reference }} · {{ product.categoryName }}</span>
           </div>
           <div class="compact-side">

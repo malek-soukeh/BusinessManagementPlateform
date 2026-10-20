@@ -235,6 +235,8 @@ body {
 .compact-main, .compact-side { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .compact-side { align-items: flex-end; flex: none; }
 .compact-title { font-weight: 500; }
+a.compact-title { color: inherit; text-decoration: none; }
+a.compact-title:hover, a.compact-title:focus-visible { text-decoration: underline; }
 
 .compact-sub {
   font-size: 12px;

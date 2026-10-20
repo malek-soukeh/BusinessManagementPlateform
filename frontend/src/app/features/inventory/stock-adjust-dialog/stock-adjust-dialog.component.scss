@@ -1,0 +1,25 @@
+.product { margin: 0 0 16px; line-height: 1.6; }
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+mat-form-field, .full { width: 100%; }
+
+.preview {
+  margin: 0 0 8px;
+  font-size: 14px;
+
+  &.invalid { color: var(--app-danger); }
+}
+
+.change { color: var(--app-muted); margin-left: 4px; }
+.form-error { margin: 0; color: var(--app-danger); font-size: 14px; }
+
+button mat-spinner { display: inline-block; margin-right: 8px; }
+
+@media (max-width: 480px) {
+  .row { grid-template-columns: 1fr; gap: 0; }
+}

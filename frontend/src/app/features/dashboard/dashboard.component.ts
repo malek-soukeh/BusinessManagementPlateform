@@ -53,6 +53,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly routes = {
     customers: this.routeIfAvailable('/customers'),
     products: this.routeIfAvailable('/products'),
+    inventory: this.routeIfAvailable('/inventory'),
     orders: this.routeIfAvailable('/orders'),
     invoices: this.routeIfAvailable('/invoices')
   };

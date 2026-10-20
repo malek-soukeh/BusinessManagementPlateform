@@ -1,0 +1,143 @@
+<div class="page">
+  <div class="header">
+    <a mat-icon-button routerLink="/inventory" aria-label="Retour au stock">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div class="title">
+      <h1>{{ product?.name ?? 'Historique du stock' }}</h1>
+      <p class="subtitle" *ngIf="product">{{ product.reference }} · {{ product.categoryName }}</p>
+    </div>
+    <span class="spacer"></span>
+    <a mat-stroked-button *ngIf="canAdjust && product" [routerLink]="['/products', product.id, 'edit']">
+      <mat-icon>edit</mat-icon>
+      Modifier le produit
+    </a>
+    <button
+      id="adjust-button"
+      mat-flat-button
+      color="primary"
+      type="button"
+      *ngIf="canAdjust && product"
+      (click)="adjust()"
+    >
+      <mat-icon>tune</mat-icon>
+      Ajuster le stock
+    </button>
+  </div>
+
+  <div class="panel error-panel" role="alert" *ngIf="productError">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span class="error-message">{{ productError }}</span>
+    <button mat-button color="primary" type="button" *ngIf="productError !== 'Produit introuvable.'" (click)="loadProduct()">
+      Réessayer
+    </button>
+    <a mat-button color="primary" routerLink="/inventory">Retour au stock</a>
+  </div>
+
+  <ng-container *ngIf="productError !== 'Produit introuvable.'">
+    <section class="figures" aria-label="Niveau de stock">
+      <ng-container *ngIf="product; else figuresSkeleton">
+        <div class="panel figure">
+          <span class="figure-label">En stock</span>
+          <span class="status-chip figure-chip" [ngClass]="chipClass">{{ product.quantity | number }}</span>
+        </div>
+        <div class="panel figure">
+          <span class="figure-label">Seuil minimum</span>
+          <span class="figure-value">{{ product.minimumStock | number }}</span>
+        </div>
+        <div class="panel figure">
+          <span class="figure-label">Valeur au prix d'achat</span>
+          <span class="figure-value">{{ product.quantity * product.purchasePrice | number: '1.3-3' }} TND</span>
+        </div>
+        <div class="panel figure">
+          <span class="figure-label">Statut</span>
+          <span class="status-chip" [ngClass]="product.status === 'ACTIVE' ? 'tone-success' : 'tone-muted'">
+            {{ product.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}
+          </span>
+        </div>
+      </ng-container>
+      <ng-template #figuresSkeleton>
+        <div class="panel figure" *ngFor="let card of skeletonRows" aria-hidden="true">
+          <app-skeleton width="60%" height="12px"></app-skeleton>
+          <app-skeleton width="40%" height="24px"></app-skeleton>
+        </div>
+      </ng-template>
+    </section>
+
+    <mat-card class="table-card">
+      <h2 class="panel-title history-title">Mouvements de stock</h2>
+      <mat-progress-bar mode="indeterminate" *ngIf="historyLoading && movements.length"></mat-progress-bar>
+
+      <div class="error-panel" role="alert" *ngIf="historyError">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span class="error-message">{{ historyError }}</span>
+        <button mat-button color="primary" type="button" (click)="loadHistory()">Réessayer</button>
+      </div>
+
+      <div class="skeleton-rows" *ngIf="historyLoading && !movements.length" aria-busy="true">
+        <app-skeleton *ngFor="let row of skeletonRows" height="18px"></app-skeleton>
+      </div>
+
+      <div class="table-wrapper" *ngIf="!historyError && !(historyLoading && !movements.length)">
+        <table mat-table [dataSource]="movements" class="history-table">
+          <ng-container matColumnDef="date">
+            <th mat-header-cell *matHeaderCellDef>Date</th>
+            <td mat-cell *matCellDef="let movement" class="nowrap">{{ movement.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="reason">
+            <th mat-header-cell *matHeaderCellDef>Mouvement</th>
+            <td mat-cell *matCellDef="let movement">
+              <span class="status-chip" [ngClass]="reasonTone(movement.reason)">{{ reasonLabel(movement.reason) }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="change">
+            <th mat-header-cell *matHeaderCellDef class="number">Variation</th>
+            <td
+              mat-cell
+              *matCellDef="let movement"
+              class="number change"
+              [class.positive]="movement.quantityChange > 0"
+              [class.negative]="movement.quantityChange < 0"
+            >
+              {{ movement.quantityChange > 0 ? '+' : '' }}{{ movement.quantityChange | number }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="after">
+            <th mat-header-cell *matHeaderCellDef class="number">Stock après</th>
+            <td mat-cell *matCellDef="let movement" class="number">{{ movement.quantityAfter | number }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="detail">
+            <th mat-header-cell *matHeaderCellDef class="hide-sm">Détail</th>
+            <td mat-cell *matCellDef="let movement" class="hide-sm detail">{{ noteLabel(movement.note) || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="user">
+            <th mat-header-cell *matHeaderCellDef class="hide-sm">Par</th>
+            <td mat-cell *matCellDef="let movement" class="hide-sm muted">{{ movement.createdBy }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty" [attr.colspan]="columns.length">Aucun mouvement de stock pour ce produit.</td>
+          </tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        *ngIf="!historyError"
+        [length]="total"
+        [pageIndex]="pageIndex"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50]"
+        showFirstLastButtons
+        (page)="onPage($event)"
+      ></mat-paginator>
+    </mat-card>
+  </ng-container>
+</div>
