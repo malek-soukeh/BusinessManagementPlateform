@@ -195,7 +195,9 @@
     <article class="panel list-panel" id="low-stock">
       <div class="panel-head">
         <h2 class="panel-title">Produits en stock bas</h2>
-        <a mat-button color="primary" *ngIf="routes.products" [routerLink]="routes.products">Tout voir</a>
+        <a mat-button color="primary" *ngIf="routes.products" [routerLink]="routes.products" [queryParams]="{ lowStock: 'true' }">
+          Tout voir
+        </a>
       </div>
 
       <ng-container

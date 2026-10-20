@@ -18,6 +18,8 @@ export interface Kpi {
   progress?: number | null;
   /** Page opened by a click on the card, null when it does not exist yet or is not allowed. */
   link?: string | null;
+  /** Filters applied on the linked page, e.g. { lowStock: 'true' }. */
+  queryParams?: Record<string, string>;
 }
 
 /** One key figure of the dashboard. */

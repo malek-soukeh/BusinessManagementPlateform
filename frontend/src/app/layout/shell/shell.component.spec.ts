@@ -87,7 +87,7 @@ describe('ShellComponent', () => {
 
     const links = Array.from<Element>(fixture.nativeElement.querySelectorAll('mat-nav-list a[href]'));
 
-    expect(links.map(link => link.getAttribute('href'))).toEqual(['/dashboard', '/customers', '/categories']);
+    expect(links.map(link => link.getAttribute('href'))).toEqual(['/dashboard', '/customers', '/products', '/categories']);
   });
 
   it('keeps working when the profile cannot be loaded', () => {

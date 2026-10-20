@@ -213,7 +213,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         tone: s.lowStockProducts > 0 ? 'warning' : 'success', value: s.lowStockProducts,
         alert: s.lowStockProducts > 0,
         hint: s.lowStockProducts > 0 ? 'Produits au seuil minimum ou en dessous' : 'Tous les stocks sont suffisants',
-        link: this.routes.products
+        link: this.routes.products, queryParams: { lowStock: 'true' }
       },
       {
         id: 'customers', label: 'Clients actifs', icon: 'people', tone: 'primary', value: s.totalCustomers,

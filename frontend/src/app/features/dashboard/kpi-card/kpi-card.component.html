@@ -1,4 +1,4 @@
-<a *ngIf="kpi.link; else plain" class="kpi" [ngClass]="'tone-' + kpi.tone" [routerLink]="kpi.link">
+<a *ngIf="kpi.link; else plain" class="kpi" [ngClass]="'tone-' + kpi.tone" [routerLink]="kpi.link" [queryParams]="kpi.queryParams">
   <ng-container [ngTemplateOutlet]="body"></ng-container>
 </a>
 

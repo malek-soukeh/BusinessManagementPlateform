@@ -16,7 +16,7 @@ const MANAGEMENT: Role[] = ['ADMIN', 'MANAGER'];
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Tableau de bord', icon: 'dashboard', route: '/dashboard', roles: EVERYONE },
   { label: 'Clients', icon: 'people', route: '/customers', roles: EVERYONE },
-  { label: 'Produits', icon: 'devices', route: '/products', roles: EVERYONE, comingSoon: true },
+  { label: 'Produits', icon: 'devices', route: '/products', roles: EVERYONE },
   { label: 'Catégories', icon: 'category', route: '/categories', roles: MANAGEMENT },
   { label: 'Stock', icon: 'storage', route: '/inventory', roles: EVERYONE, comingSoon: true },
   { label: 'Commandes', icon: 'shopping_cart', route: '/orders', roles: EVERYONE, comingSoon: true },

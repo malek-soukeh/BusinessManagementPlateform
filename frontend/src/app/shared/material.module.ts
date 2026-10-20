@@ -11,6 +11,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -29,6 +30,7 @@ const MATERIAL_MODULES = [
   MatProgressSpinnerModule,
   MatSelectModule,
   MatSidenavModule,
+  MatSlideToggleModule,
   MatSnackBarModule,
   MatTableModule,
   MatToolbarModule,
