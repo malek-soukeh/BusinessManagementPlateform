@@ -1,0 +1,121 @@
+<div class="page">
+  <div class="header">
+    <a mat-icon-button routerLink="/orders" aria-label="Retour aux commandes">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>{{ order?.orderNumber ?? 'Commande' }}</h1>
+    <span class="status-chip" *ngIf="order" [ngClass]="statusTone(order.status)">{{ statusLabel(order.status) }}</span>
+    <span class="spacer"></span>
+    <a mat-stroked-button *ngIf="canEdit && order" [routerLink]="['/orders', order.id, 'edit']" id="edit-button">
+      <mat-icon>edit</mat-icon>
+      Modifier
+    </a>
+  </div>
+
+  <div class="panel loading" *ngIf="loading" aria-busy="true" aria-label="Chargement de la commande">
+    <app-skeleton width="40%" height="20px"></app-skeleton>
+    <app-skeleton height="60px"></app-skeleton>
+    <app-skeleton height="160px"></app-skeleton>
+  </div>
+
+  <div class="panel error-panel" role="alert" *ngIf="loadError">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span class="error-message">{{ loadError }}</span>
+    <button mat-button color="primary" type="button" *ngIf="loadError !== 'Commande introuvable.'" (click)="load()">
+      Réessayer
+    </button>
+    <a mat-button color="primary" routerLink="/orders">Retour aux commandes</a>
+  </div>
+
+  <ng-container *ngIf="order && !loading">
+    <section class="panel workflow" aria-label="Avancement de la commande">
+      <ol class="steps" *ngIf="order.status !== 'CANCELLED'; else cancelled">
+        <li
+          *ngFor="let step of workflow"
+          class="step"
+          [class.done]="isDone(step)"
+          [class.current]="step === order.status"
+          [attr.aria-current]="step === order.status ? 'step' : null"
+        >
+          <span class="dot" aria-hidden="true"><mat-icon *ngIf="isDone(step)">check</mat-icon></span>
+          <span class="step-label">{{ statusLabel(step) }}</span>
+        </li>
+      </ol>
+      <ng-template #cancelled>
+        <p class="cancelled"><mat-icon aria-hidden="true">cancel</mat-icon>Cette commande a été annulée.</p>
+      </ng-template>
+
+      <div class="actions" *ngIf="actions.length">
+        <button
+          *ngFor="let target of actions"
+          [attr.data-target]="target"
+          [color]="target === 'CANCELLED' ? 'warn' : 'primary'"
+          [class.action-cancel]="target === 'CANCELLED'"
+          mat-stroked-button
+          type="button"
+          class="action"
+          [disabled]="busy"
+          (click)="changeStatus(target)"
+        >
+          <mat-icon>{{ actionIcon(target) }}</mat-icon>
+          {{ actionLabel(target) }}
+        </button>
+      </div>
+      <p class="action-error" role="alert" *ngIf="actionError">{{ actionError }}</p>
+    </section>
+
+    <section class="info">
+      <div class="panel info-item">
+        <span class="info-label">Client</span>
+        <span class="info-value">{{ order.customerName }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Date</span>
+        <span class="info-value">{{ order.orderDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Créée par</span>
+        <span class="info-value small">{{ order.createdBy }}</span>
+      </div>
+    </section>
+
+    <mat-card class="lines">
+      <h2 class="panel-title lines-title">Lignes ({{ itemCount | number }} article{{ itemCount > 1 ? 's' : '' }})</h2>
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="order.items" class="lines-table">
+          <ng-container matColumnDef="product">
+            <th mat-header-cell *matHeaderCellDef>Produit</th>
+            <td mat-cell *matCellDef="let item">
+              <div class="product-name">{{ item.productName }}</div>
+              <div class="muted">{{ item.productReference }}</div>
+            </td>
+            <td mat-footer-cell *matFooterCellDef>Total HT</td>
+          </ng-container>
+
+          <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef class="number">Qté</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.quantity | number }}</td>
+            <td mat-footer-cell *matFooterCellDef></td>
+          </ng-container>
+
+          <ng-container matColumnDef="unitPrice">
+            <th mat-header-cell *matHeaderCellDef class="number">Prix unitaire HT</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.unitPrice | number: '1.3-3' }}</td>
+            <td mat-footer-cell *matFooterCellDef></td>
+          </ng-container>
+
+          <ng-container matColumnDef="subtotal">
+            <th mat-header-cell *matHeaderCellDef class="number">Sous-total HT</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.subtotal | number: '1.3-3' }}</td>
+            <td mat-footer-cell *matFooterCellDef class="number total">{{ order.totalAmount | number: '1.3-3' }} TND</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          <tr mat-footer-row *matFooterRowDef="columns"></tr>
+        </table>
+      </div>
+      <p class="tax-note">La TVA est calculée sur la facture.</p>
+    </mat-card>
+  </ng-container>
+</div>

@@ -28,6 +28,7 @@ $dark-theme: mat.define-dark-theme((
  */
 @mixin component-themes($theme) {
   @include mat.core-theme($theme);
+  @include mat.autocomplete-theme($theme);
   @include mat.button-theme($theme);
   @include mat.card-theme($theme);
   @include mat.dialog-theme($theme);
@@ -50,6 +51,7 @@ $dark-theme: mat.define-dark-theme((
 
 @mixin component-colors($theme) {
   @include mat.core-color($theme);
+  @include mat.autocomplete-color($theme);
   @include mat.button-color($theme);
   @include mat.card-color($theme);
   @include mat.dialog-color($theme);
@@ -247,6 +249,19 @@ a.compact-title:hover, a.compact-title:focus-visible { text-decoration: underlin
 }
 
 .compact-amount { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Row of small cards with a label and a value (order, invoice details...). */
+.info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-label { font-size: 13px; color: var(--app-muted); }
+.info-value { font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.info-value.small { font-size: 14px; font-weight: 400; }
 
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

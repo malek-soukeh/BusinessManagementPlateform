@@ -154,7 +154,10 @@
       <ul class="compact-list" *ngIf="orders.data?.length" @fadeIn>
         <li class="compact-row" *ngFor="let order of orders.data; trackBy: trackById">
           <div class="compact-main">
-            <span class="compact-title">{{ order.orderNumber }}</span>
+            <a class="compact-title" *ngIf="routes.orders; else orderNumber" [routerLink]="[routes.orders, order.id]">
+              {{ order.orderNumber }}
+            </a>
+            <ng-template #orderNumber><span class="compact-title">{{ order.orderNumber }}</span></ng-template>
             <span class="compact-sub">{{ order.customerName }} · {{ order.orderDate | date: 'd MMM y' }}</span>
           </div>
           <div class="compact-side">

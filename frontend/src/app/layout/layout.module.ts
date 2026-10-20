@@ -29,6 +29,10 @@ export const layoutRoutes: Routes = [
         loadChildren: () => import('../features/inventory/inventory.module').then(m => m.InventoryModule)
       },
       {
+        path: 'orders',
+        loadChildren: () => import('../features/orders/orders.module').then(m => m.OrdersModule)
+      },
+      {
         path: 'categories',
         canActivate: [roleGuard(['ADMIN', 'MANAGER'])],
         loadChildren: () => import('../features/categories/categories.module').then(m => m.CategoriesModule)

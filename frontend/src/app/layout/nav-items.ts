@@ -19,7 +19,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Produits', icon: 'devices', route: '/products', roles: EVERYONE },
   { label: 'Catégories', icon: 'category', route: '/categories', roles: MANAGEMENT },
   { label: 'Stock', icon: 'storage', route: '/inventory', roles: EVERYONE },
-  { label: 'Commandes', icon: 'shopping_cart', route: '/orders', roles: EVERYONE, comingSoon: true },
+  { label: 'Commandes', icon: 'shopping_cart', route: '/orders', roles: EVERYONE },
   { label: 'Factures', icon: 'receipt_long', route: '/invoices', roles: EVERYONE, comingSoon: true },
   { label: 'Utilisateurs', icon: 'manage_accounts', route: '/users', roles: ['ADMIN'], comingSoon: true }
 ];
