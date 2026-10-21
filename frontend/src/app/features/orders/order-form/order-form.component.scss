@@ -1,16 +1,5 @@
-.page { max-width: 900px; margin: 0 auto; }
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-
-  h1 { margin: 0; font-size: 24px; font-weight: 500; }
-}
-
 .form-skeleton { display: flex; flex-direction: column; gap: 20px; padding: 16px; }
-.section { padding: 16px; margin-bottom: 16px; }
+.section { padding: 20px 24px; margin-bottom: 16px; }
 .full { width: 100%; }
 .panel-head { margin-bottom: 12px; }
 

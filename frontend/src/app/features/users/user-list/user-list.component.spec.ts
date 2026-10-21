@@ -11,6 +11,7 @@ import { User } from '../../../core/models/user.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { clickRowMenuItem, openRowMenu } from '../../../testing/menu.helpers';
 import { UserListComponent } from './user-list.component';
 
 describe('UserListComponent', () => {
@@ -66,16 +67,16 @@ describe('UserListComponent', () => {
     const fixture = create();
 
     expect(row(fixture, 0).textContent).toContain('Vous');
-    expect(row(fixture, 0).querySelector('.deactivate-button')).toBeNull();
-    expect(row(fixture, 0).querySelector('.delete-button')).toBeNull();
-    expect(row(fixture, 1).querySelector('.deactivate-button')).not.toBeNull();
+    expect(openRowMenu(fixture, 0).querySelector('.deactivate-button')).toBeNull();
+    expect(openRowMenu(fixture, 0).querySelector('.delete-button')).toBeNull();
+    expect(openRowMenu(fixture, 1).querySelector('.deactivate-button')).not.toBeNull();
   });
 
   it('deactivates after a destructive confirmation', () => {
     service.updateStatus.and.returnValue(of(user(2, { status: 'INACTIVE' })));
     const fixture = create();
 
-    (row(fixture, 1).querySelector('.deactivate-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 1, 'deactivate-button');
 
     expect(dialog.open.calls.mostRecent().args[1].data.destructive).toBeTrue();
     expect(service.updateStatus).toHaveBeenCalledWith(2, 'INACTIVE');
@@ -87,7 +88,7 @@ describe('UserListComponent', () => {
     service.updateStatus.and.returnValue(of(user(3)));
     const fixture = create();
 
-    (row(fixture, 2).querySelector('.reactivate-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 2, 'reactivate-button');
 
     expect(service.updateStatus).toHaveBeenCalledWith(3, 'ACTIVE');
   });
@@ -96,7 +97,7 @@ describe('UserListComponent', () => {
     service.delete.and.returnValue(of(undefined));
     const fixture = create();
 
-    (row(fixture, 1).querySelector('.delete-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 1, 'delete-button');
 
     expect(service.delete).toHaveBeenCalledWith(2);
     expect(snackBar.open).toHaveBeenCalledWith('Utilisateur supprimé.', 'OK', jasmine.anything());
@@ -106,7 +107,7 @@ describe('UserListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(false) });
     const fixture = create();
 
-    (row(fixture, 1).querySelector('.delete-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 1, 'delete-button');
 
     expect(service.delete).not.toHaveBeenCalled();
   });
@@ -121,7 +122,7 @@ describe('UserListComponent', () => {
     service.updateStatus.and.returnValue(of(user(2, { status: 'INACTIVE' })));
     const fixture = create();
 
-    (row(fixture, 1).querySelector('.delete-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 1, 'delete-button');
 
     expect(snackBar.open).toHaveBeenCalledWith(
       'Cet utilisateur est lié à des enregistrements : désactivez-le plutôt.', 'Désactiver', jasmine.anything());

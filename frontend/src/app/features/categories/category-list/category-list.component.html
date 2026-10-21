@@ -1,58 +1,62 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>Catégories</h1>
-      <p class="subtitle" *ngIf="!loading && !errorMessage">{{ filtered.length }} catégorie(s)</p>
-    </div>
+  <app-page-header
+    title="Catégories"
+    subtitle="L'arborescence qui organise le catalogue."
+    [breadcrumbs]="[{ label: 'Gestion' }, { label: 'Catégories' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new">
       <mat-icon>add</mat-icon>
       Nouvelle catégorie
     </a>
-  </div>
-
-  <mat-card class="filters">
-    <mat-form-field appearance="outline" class="search">
-      <mat-label>Rechercher</mat-label>
-      <input matInput [formControl]="search" placeholder="Nom, catégorie parente, description" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="level-filter">
-      <mat-label>Niveau</mat-label>
-      <mat-select [value]="level" (selectionChange)="onLevelChange($event.value)">
-        <mat-option value="">Toutes</mat-option>
-        <mat-option value="root">Catégories principales</mat-option>
-        <mat-option value="sub">Sous-catégories</mat-option>
-      </mat-select>
-    </mat-form-field>
-  </mat-card>
+  </app-page-header>
 
   <mat-card class="table-card">
+    <div class="list-toolbar">
+      <app-search-field [formControl]="search" placeholder="Nom, parent, description"></app-search-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="level" (selectionChange)="onLevelChange($event.value)" aria-label="Filtrer par niveau">
+          <mat-select-trigger><span class="filter-label">Niveau</span>{{ levelLabel(level) }}</mat-select-trigger>
+          <mat-option value="">Toutes</mat-option>
+          <mat-option value="root">Catégories principales</mat-option>
+          <mat-option value="sub">Sous-catégories</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="list-count" *ngIf="!loading && !errorMessage">{{ filtered.length }} catégorie(s)</span>
+    </div>
+
+    <div class="active-filters" *ngIf="hasFilters">
+      <button type="button" class="filter-chip" *ngIf="search.value" (click)="search.setValue('')">
+        « {{ search.value }} » <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="level" (click)="onLevelChange('')">
+        Niveau : {{ levelLabel(level) }} <mat-icon>close</mat-icon>
+      </button>
+      <button mat-button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser</button>
+    </div>
+
     <div class="error-panel" role="alert" *ngIf="errorMessage">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span class="error-message">{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="load()">Réessayer</button>
+      <button mat-stroked-button type="button" (click)="load()">Réessayer</button>
     </div>
 
-    <div class="skeleton-rows" *ngIf="loading" aria-busy="true" aria-label="Chargement des catégories">
-      <div class="skeleton-row" *ngFor="let row of skeletonRows">
-        <app-skeleton width="30%" height="14px"></app-skeleton>
-        <app-skeleton width="40%" height="12px"></app-skeleton>
-      </div>
-    </div>
+    <app-table-skeleton *ngIf="loading" [columns]="3" label="Chargement des catégories"></app-table-skeleton>
 
     <div class="table-wrapper" *ngIf="!loading && !errorMessage">
-      <table mat-table [dataSource]="rows" [trackBy]="trackById" class="categories-table">
+      <table mat-table [dataSource]="rows" [trackBy]="trackById" class="data-table" *ngIf="rows.length; else empty">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Nom</th>
           <td mat-cell *matCellDef="let node">
-            <div class="name" [style.padding-left.px]="showTree ? node.depth * 24 : 0">
+            <div class="name" [style.padding-left.px]="showTree ? node.depth * 20 : 0">
               <mat-icon class="tree-icon" aria-hidden="true">
                 {{ node.depth === 0 ? 'folder' : 'subdirectory_arrow_right' }}
               </mat-icon>
               <div>
-                <div class="category-name">{{ node.category.name }}</div>
-                <div class="muted" *ngIf="!showTree && node.depth > 0">{{ node.path }}</div>
+                <a class="cell-link category-name" [routerLink]="[node.category.id, 'edit']">{{ node.category.name }}</a>
+                <div class="cell-sub" *ngIf="!showTree && node.depth > 0">{{ node.path }}</div>
               </div>
             </div>
           </td>
@@ -60,62 +64,53 @@
 
         <ng-container matColumnDef="description">
           <th mat-header-cell *matHeaderCellDef class="hide-sm">Description</th>
-          <td mat-cell *matCellDef="let node" class="hide-sm description">{{ node.category.description || '—' }}</td>
+          <td mat-cell *matCellDef="let node" class="hide-sm muted description">{{ node.category.description || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="children">
-          <th mat-header-cell *matHeaderCellDef class="hide-sm">Sous-catégories</th>
-          <td mat-cell *matCellDef="let node" class="hide-sm">{{ node.childCount }}</td>
+          <th mat-header-cell *matHeaderCellDef class="hide-sm num">Sous-catégories</th>
+          <td mat-cell *matCellDef="let node" class="hide-sm num">{{ node.childCount }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef><span class="sr-only">Actions</span></th>
-          <td mat-cell *matCellDef="let node" class="actions">
-            <a
+          <th mat-header-cell *matHeaderCellDef class="actions-col"><span class="sr-only">Actions</span></th>
+          <td mat-cell *matCellDef="let node" class="actions-col">
+            <button
               mat-icon-button
-              routerLink="new"
-              [queryParams]="{ parent: node.category.id }"
-              [attr.aria-label]="'Ajouter une sous-catégorie à ' + node.category.name"
-              matTooltip="Ajouter une sous-catégorie"
+              type="button"
+              class="row-menu-button"
+              [matMenuTriggerFor]="rowMenu"
+              [matMenuTriggerData]="{ $implicit: node }"
+              [attr.aria-label]="'Actions pour ' + node.category.name"
             >
-              <mat-icon>create_new_folder</mat-icon>
-            </a>
-            <a
-              mat-icon-button
-              [routerLink]="[node.category.id, 'edit']"
-              [attr.aria-label]="'Modifier ' + node.category.name"
-              matTooltip="Modifier"
-            >
-              <mat-icon>edit</mat-icon>
-            </a>
-            <span [matTooltip]="node.childCount > 0 ? 'Supprimez d’abord ses sous-catégories' : 'Supprimer'">
-              <button
-                mat-icon-button
-                type="button"
-                class="delete-button"
-                [attr.aria-label]="'Supprimer ' + node.category.name"
-                [disabled]="node.childCount > 0"
-                (click)="delete(node)"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </span>
+              <mat-icon>more_horiz</mat-icon>
+            </button>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">
-            {{ nodes.length === 0 ? 'Aucune catégorie pour le moment.' : 'Aucune catégorie ne correspond à la recherche.' }}
-          </td>
-        </tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state
+        *ngIf="nodes.length; else noCategory"
+        icon="search_off"
+        title="Aucune catégorie ne correspond à la recherche."
+        description="Essayez un autre terme ou retirez les filtres."
+      >
+        <button mat-stroked-button type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </app-empty-state>
+      <ng-template #noCategory>
+        <app-empty-state icon="category" title="Aucune catégorie pour le moment." description="Créez une catégorie pour ranger vos produits.">
+          <a mat-flat-button color="primary" routerLink="new"><mat-icon>add</mat-icon>Nouvelle catégorie</a>
+        </app-empty-state>
+      </ng-template>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!loading && !errorMessage"
+      *ngIf="!loading && !errorMessage && filtered.length > 0"
       [length]="filtered.length"
       [pageIndex]="pageIndex"
       [pageSize]="pageSize"
@@ -124,4 +119,25 @@
       (page)="onPage($event)"
     ></mat-paginator>
   </mat-card>
+
+  <mat-menu #rowMenu="matMenu" xPosition="before">
+    <ng-template matMenuContent let-node>
+      <a mat-menu-item class="edit-item" [routerLink]="[node.category.id, 'edit']">
+        <mat-icon>edit</mat-icon><span>Modifier</span>
+      </a>
+      <a mat-menu-item class="add-child-item" routerLink="new" [queryParams]="{ parent: node.category.id }">
+        <mat-icon>create_new_folder</mat-icon><span>Ajouter une sous-catégorie</span>
+      </a>
+      <button
+        mat-menu-item
+        type="button"
+        class="danger delete-button"
+        [disabled]="node.childCount > 0"
+        (click)="delete(node)"
+      >
+        <mat-icon>delete</mat-icon>
+        <span>{{ node.childCount > 0 ? 'Supprimer (a des sous-catégories)' : 'Supprimer' }}</span>
+      </button>
+    </ng-template>
+  </mat-menu>
 </div>

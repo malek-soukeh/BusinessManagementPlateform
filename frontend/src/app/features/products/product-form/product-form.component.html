@@ -1,131 +1,142 @@
-<div class="page">
-  <div class="header">
-    <a mat-icon-button routerLink="/products" aria-label="Retour à la liste">
-      <mat-icon>arrow_back</mat-icon>
-    </a>
-    <h1>{{ isEdit ? 'Modifier le produit' : 'Nouveau produit' }}</h1>
-  </div>
+<div class="page narrow">
+  <app-page-header
+    [title]="isEdit ? 'Modifier le produit' : 'Nouveau produit'"
+    [breadcrumbs]="[{ label: 'Gestion' }, { label: 'Produits', link: '/products' }, { label: isEdit ? 'Modification' : 'Nouveau' }]"
+  ></app-page-header>
 
   <mat-card class="form-skeleton" *ngIf="loading" aria-busy="true" aria-label="Chargement du formulaire">
-    <app-skeleton height="52px"></app-skeleton>
-    <app-skeleton height="52px"></app-skeleton>
+    <app-skeleton height="40px"></app-skeleton>
+    <app-skeleton height="40px"></app-skeleton>
     <app-skeleton height="80px"></app-skeleton>
-    <app-skeleton height="52px"></app-skeleton>
+    <app-skeleton height="40px"></app-skeleton>
   </mat-card>
 
   <div class="panel error-panel" role="alert" *ngIf="loadError">
     <mat-icon aria-hidden="true">error_outline</mat-icon>
     <span class="error-message">{{ loadError }}</span>
-    <button mat-button color="primary" type="button" (click)="load()" *ngIf="loadError !== 'Produit introuvable.'">
-      Réessayer
-    </button>
-    <a mat-button color="primary" routerLink="/products">Retour à la liste</a>
+    <button mat-stroked-button type="button" (click)="load()" *ngIf="loadError !== 'Produit introuvable.'">Réessayer</button>
+    <a mat-button routerLink="/products">Retour à la liste</a>
   </div>
 
-  <mat-card *ngIf="!loading && !loadError">
+  <mat-card class="form-card" *ngIf="!loading && !loadError">
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <h2 class="section-title">Identification</h2>
-      <div class="row">
-        <mat-form-field appearance="outline">
-          <mat-label>Référence</mat-label>
-          <input matInput formControlName="reference" autocomplete="off" class="uppercase" />
-          <mat-hint>Enregistrée en majuscules.</mat-hint>
-          <mat-error *ngIf="form.controls.reference.hasError('required')">La référence est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.reference.hasError('maxlength')">50 caractères maximum.</mat-error>
-          <mat-error *ngIf="form.controls.reference.hasError('taken')">Cette référence est déjà utilisée.</mat-error>
-        </mat-form-field>
+      <section class="form-section">
+        <div>
+          <h2 class="form-section-title">Identification</h2>
+          <p class="form-section-text">La référence est unique et enregistrée en majuscules.</p>
+        </div>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Référence</mat-label>
+            <input matInput formControlName="reference" autocomplete="off" class="uppercase" />
+            <mat-error *ngIf="form.controls.reference.hasError('required')">La référence est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.reference.hasError('maxlength')">50 caractères maximum.</mat-error>
+            <mat-error *ngIf="form.controls.reference.hasError('taken')">Cette référence est déjà utilisée.</mat-error>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Catégorie</mat-label>
-          <mat-select formControlName="categoryId">
-            <mat-option *ngFor="let node of categories" [value]="node.category.id">
-              <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
-            </mat-option>
-          </mat-select>
-          <mat-hint *ngIf="!categories.length">Créez d'abord une catégorie.</mat-hint>
-          <mat-error *ngIf="form.controls.categoryId.hasError('required')">La catégorie est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.categoryId.hasError('missing')">Cette catégorie n'existe plus.</mat-error>
-        </mat-form-field>
-      </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Catégorie</mat-label>
+            <mat-select formControlName="categoryId">
+              <mat-option *ngFor="let node of categories" [value]="node.category.id">
+                <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
+              </mat-option>
+            </mat-select>
+            <mat-hint *ngIf="!categories.length">Créez d'abord une catégorie.</mat-hint>
+            <mat-error *ngIf="form.controls.categoryId.hasError('required')">La catégorie est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.categoryId.hasError('missing')">Cette catégorie n'existe plus.</mat-error>
+          </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Nom</mat-label>
-        <input matInput formControlName="name" autocomplete="off" />
-        <mat-error *ngIf="form.controls.name.hasError('required')">Le nom est obligatoire.</mat-error>
-        <mat-error *ngIf="form.controls.name.hasError('maxlength')">200 caractères maximum.</mat-error>
-      </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="name" autocomplete="off" />
+            <mat-error *ngIf="form.controls.name.hasError('required')">Le nom est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.name.hasError('maxlength')">200 caractères maximum.</mat-error>
+          </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Description</mat-label>
-        <textarea matInput formControlName="description" rows="3"></textarea>
-        <mat-error *ngIf="form.controls.description.hasError('maxlength')">2000 caractères maximum.</mat-error>
-      </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3"></textarea>
+            <mat-error *ngIf="form.controls.description.hasError('maxlength')">2000 caractères maximum.</mat-error>
+          </mat-form-field>
+        </div>
+      </section>
 
-      <h2 class="section-title">Prix (TND)</h2>
-      <div class="row">
-        <mat-form-field appearance="outline">
-          <mat-label>Prix d'achat</mat-label>
-          <input matInput type="number" min="0" step="0.001" formControlName="purchasePrice" />
-          <span matTextSuffix>TND</span>
-          <mat-error *ngIf="form.controls.purchasePrice.hasError('required')">Le prix d'achat est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.purchasePrice.hasError('min')">Le prix doit être supérieur à 0.</mat-error>
-          <mat-error *ngIf="form.controls.purchasePrice.hasError('max')">Montant trop élevé.</mat-error>
-          <mat-error *ngIf="form.controls.purchasePrice.hasError('maxDecimals')">3 décimales maximum.</mat-error>
-        </mat-form-field>
+      <section class="form-section">
+        <div>
+          <h2 class="form-section-title">Prix</h2>
+          <p class="form-section-text">En TND, 3 décimales au plus. La TVA s'ajoute sur la facture.</p>
+        </div>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Prix d'achat</mat-label>
+            <input matInput type="number" min="0" step="0.001" formControlName="purchasePrice" />
+            <span matTextSuffix>TND</span>
+            <mat-error *ngIf="form.controls.purchasePrice.hasError('required')">Le prix d'achat est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.purchasePrice.hasError('min')">Le prix doit être supérieur à 0.</mat-error>
+            <mat-error *ngIf="form.controls.purchasePrice.hasError('max')">Montant trop élevé.</mat-error>
+            <mat-error *ngIf="form.controls.purchasePrice.hasError('maxDecimals')">3 décimales maximum.</mat-error>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Prix de vente HT</mat-label>
-          <input matInput type="number" min="0" step="0.001" formControlName="sellingPrice" />
-          <span matTextSuffix>TND</span>
-          <mat-hint *ngIf="margin as m" [class.negative]="m.amount < 0">
-            Marge : {{ m.amount | number: '1.3-3' }} TND ({{ m.rate | number: '1.0-1' }} %)
-          </mat-hint>
-          <mat-error *ngIf="form.controls.sellingPrice.hasError('required')">Le prix de vente est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.sellingPrice.hasError('min')">Le prix doit être supérieur à 0.</mat-error>
-          <mat-error *ngIf="form.controls.sellingPrice.hasError('max')">Montant trop élevé.</mat-error>
-          <mat-error *ngIf="form.controls.sellingPrice.hasError('maxDecimals')">3 décimales maximum.</mat-error>
-        </mat-form-field>
-      </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Prix de vente HT</mat-label>
+            <input matInput type="number" min="0" step="0.001" formControlName="sellingPrice" />
+            <span matTextSuffix>TND</span>
+            <mat-hint *ngIf="margin as m" [class.negative]="m.amount < 0">
+              Marge : {{ m.amount | number: '1.3-3' }} TND ({{ m.rate | number: '1.0-1' }} %)
+            </mat-hint>
+            <mat-error *ngIf="form.controls.sellingPrice.hasError('required')">Le prix de vente est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.sellingPrice.hasError('min')">Le prix doit être supérieur à 0.</mat-error>
+            <mat-error *ngIf="form.controls.sellingPrice.hasError('max')">Montant trop élevé.</mat-error>
+            <mat-error *ngIf="form.controls.sellingPrice.hasError('maxDecimals')">3 décimales maximum.</mat-error>
+          </mat-form-field>
+        </div>
+      </section>
 
-      <h2 class="section-title">Stock</h2>
-      <div class="row">
-        <mat-form-field appearance="outline">
-          <mat-label>{{ isEdit ? 'Quantité en stock' : 'Quantité initiale' }}</mat-label>
-          <input matInput type="number" min="0" step="1" formControlName="quantity" />
-          <mat-hint *ngIf="isEdit">Modifiable uniquement par un mouvement de stock.</mat-hint>
-          <mat-error *ngIf="form.controls.quantity.hasError('required')">La quantité est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.quantity.hasError('min')">La quantité ne peut pas être négative.</mat-error>
-          <mat-error *ngIf="form.controls.quantity.hasError('integer')">Nombre entier attendu.</mat-error>
-          <mat-error *ngIf="form.controls.quantity.hasError('max')">Quantité trop élevée.</mat-error>
-        </mat-form-field>
+      <section class="form-section">
+        <div>
+          <h2 class="form-section-title">Stock</h2>
+          <p class="form-section-text">
+            {{ isEdit ? 'La quantité change uniquement par un mouvement de stock.' : 'Quantité de départ et seuil d’alerte.' }}
+          </p>
+        </div>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ isEdit ? 'Quantité en stock' : 'Quantité initiale' }}</mat-label>
+            <input matInput type="number" min="0" step="1" formControlName="quantity" />
+            <mat-hint *ngIf="isEdit">Modifiable uniquement par un mouvement de stock.</mat-hint>
+            <mat-error *ngIf="form.controls.quantity.hasError('required')">La quantité est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.quantity.hasError('min')">La quantité ne peut pas être négative.</mat-error>
+            <mat-error *ngIf="form.controls.quantity.hasError('integer')">Nombre entier attendu.</mat-error>
+            <mat-error *ngIf="form.controls.quantity.hasError('max')">Quantité trop élevée.</mat-error>
+          </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Stock minimum</mat-label>
-          <input matInput type="number" min="0" step="1" formControlName="minimumStock" />
-          <mat-hint>Alerte « stock bas » à ce seuil ou en dessous.</mat-hint>
-          <mat-error *ngIf="form.controls.minimumStock.hasError('required')">Le stock minimum est obligatoire.</mat-error>
-          <mat-error *ngIf="form.controls.minimumStock.hasError('min')">Le seuil ne peut pas être négatif.</mat-error>
-          <mat-error *ngIf="form.controls.minimumStock.hasError('integer')">Nombre entier attendu.</mat-error>
-          <mat-error *ngIf="form.controls.minimumStock.hasError('max')">Seuil trop élevé.</mat-error>
-        </mat-form-field>
-      </div>
+          <mat-form-field appearance="outline">
+            <mat-label>Stock minimum</mat-label>
+            <input matInput type="number" min="0" step="1" formControlName="minimumStock" />
+            <mat-hint>Alerte « stock bas » à ce seuil ou en dessous.</mat-hint>
+            <mat-error *ngIf="form.controls.minimumStock.hasError('required')">Le stock minimum est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.minimumStock.hasError('min')">Le seuil ne peut pas être négatif.</mat-error>
+            <mat-error *ngIf="form.controls.minimumStock.hasError('integer')">Nombre entier attendu.</mat-error>
+            <mat-error *ngIf="form.controls.minimumStock.hasError('max')">Seuil trop élevé.</mat-error>
+          </mat-form-field>
 
-      <mat-form-field appearance="outline" class="status" *ngIf="isEdit">
-        <mat-label>Statut</mat-label>
-        <mat-select formControlName="status">
-          <mat-option value="ACTIVE">Actif</mat-option>
-          <mat-option value="INACTIVE">Inactif</mat-option>
-        </mat-select>
-      </mat-form-field>
+          <mat-form-field appearance="outline" *ngIf="isEdit">
+            <mat-label>Statut</mat-label>
+            <mat-select formControlName="status">
+              <mat-option value="ACTIVE">Actif</mat-option>
+              <mat-option value="INACTIVE">Inactif</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </section>
 
-      <div class="form-error" role="alert" *ngIf="errorMessage">
-        <span>{{ errorMessage }}</span>
-        <button mat-button color="primary" type="button" class="reload-button" *ngIf="stale" (click)="load()">
-          Recharger le produit
-        </button>
-      </div>
-
-      <div class="actions">
+      <div class="form-actions">
+        <div class="form-error" role="alert" *ngIf="errorMessage">
+          <span>{{ errorMessage }}</span>
+          <button mat-button color="primary" type="button" class="reload-button" *ngIf="stale" (click)="load()">
+            Recharger le produit
+          </button>
+        </div>
         <a mat-button routerLink="/products">Annuler</a>
         <button mat-flat-button color="primary" type="submit" [disabled]="saving || stale">
           <mat-spinner *ngIf="saving" diameter="18"></mat-spinner>

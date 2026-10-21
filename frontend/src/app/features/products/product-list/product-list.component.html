@@ -1,97 +1,109 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>Produits</h1>
-      <p class="subtitle" *ngIf="!errorMessage && !loading">{{ total }} produit(s)</p>
-    </div>
+  <app-page-header
+    title="Produits"
+    subtitle="Le catalogue, ses prix et son niveau de stock."
+    [breadcrumbs]="[{ label: 'Gestion' }, { label: 'Produits' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new" *ngIf="canManage">
       <mat-icon>add</mat-icon>
       Nouveau produit
     </a>
-  </div>
-
-  <mat-card class="filters">
-    <mat-form-field appearance="outline" class="search">
-      <mat-label>Rechercher</mat-label>
-      <input matInput [formControl]="search" placeholder="Nom ou référence" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="select-filter" *ngIf="canManage">
-      <mat-label>Catégorie</mat-label>
-      <mat-select [value]="query.categoryId" (selectionChange)="onCategoryChange($event.value)">
-        <mat-option [value]="null">Toutes</mat-option>
-        <mat-option *ngFor="let node of categories" [value]="node.category.id">
-          <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="select-filter">
-      <mat-label>Statut</mat-label>
-      <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)">
-        <mat-option value="ACTIVE">Actifs</mat-option>
-        <mat-option value="INACTIVE">Inactifs</mat-option>
-        <mat-option value="">Tous</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-slide-toggle
-      class="low-stock-toggle"
-      color="primary"
-      [checked]="query.lowStock"
-      (change)="onLowStockChange($event.checked)"
-    >
-      Stock bas uniquement
-    </mat-slide-toggle>
-  </mat-card>
+  </app-page-header>
 
   <mat-card class="table-card">
+    <div class="list-toolbar">
+      <app-search-field [formControl]="search" placeholder="Nom ou référence"></app-search-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic" *ngIf="canManage">
+        <!-- "Toutes" is 0, not null: mat-select treats a null option as an empty selection and hides the trigger. -->
+        <mat-select [value]="query.categoryId ?? 0" (selectionChange)="onCategoryChange($event.value || null)" aria-label="Filtrer par catégorie">
+          <mat-select-trigger><span class="filter-label">Catégorie</span>{{ categoryName(query.categoryId) }}</mat-select-trigger>
+          <mat-option [value]="0">Toutes</mat-option>
+          <mat-option *ngFor="let node of categories" [value]="node.category.id">
+            <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)" aria-label="Filtrer par statut">
+          <mat-select-trigger><span class="filter-label">Statut</span>{{ statusFilterLabel(query.status) }}</mat-select-trigger>
+          <mat-option value="ACTIVE">Actifs</mat-option>
+          <mat-option value="INACTIVE">Inactifs</mat-option>
+          <mat-option value="">Tous</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-slide-toggle
+        class="filter-toggle low-stock-toggle"
+        color="primary"
+        [checked]="query.lowStock"
+        (change)="onLowStockChange($event.checked)"
+      >
+        Stock bas
+      </mat-slide-toggle>
+
+      <span class="spacer"></span>
+      <span class="list-count" *ngIf="!errorMessage && !loading">{{ total }} produit(s)</span>
+    </div>
+
+    <div class="active-filters" *ngIf="hasFilters">
+      <button type="button" class="filter-chip" *ngIf="search.value" (click)="search.setValue('')">
+        « {{ search.value }} » <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.categoryId !== null" (click)="onCategoryChange(null)">
+        Catégorie : {{ categoryName(query.categoryId) }} <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.status !== 'ACTIVE'" (click)="onStatusChange('ACTIVE')">
+        Statut : {{ statusFilterLabel(query.status) }} <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.lowStock" (click)="onLowStockChange(false)">
+        Stock bas <mat-icon>close</mat-icon>
+      </button>
+      <button mat-button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser</button>
+    </div>
+
     <mat-progress-bar mode="indeterminate" *ngIf="loading && productsOnPage.length"></mat-progress-bar>
 
     <div class="error-panel" role="alert" *ngIf="errorMessage">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span class="error-message">{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="reload()">Réessayer</button>
+      <button mat-stroked-button type="button" (click)="reload()">Réessayer</button>
     </div>
 
-    <div class="skeleton-rows" *ngIf="loading && !productsOnPage.length" aria-busy="true" aria-label="Chargement des produits">
-      <div class="skeleton-row" *ngFor="let row of skeletonRows">
-        <app-skeleton width="35%" height="14px"></app-skeleton>
-        <app-skeleton width="20%" height="12px"></app-skeleton>
-      </div>
-    </div>
+    <app-table-skeleton *ngIf="loading && !productsOnPage.length" [columns]="5" label="Chargement des produits"></app-table-skeleton>
 
     <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !productsOnPage.length)">
-      <table mat-table [dataSource]="productsOnPage" class="products-table">
+      <table mat-table [dataSource]="productsOnPage" class="data-table" *ngIf="productsOnPage.length; else empty">
         <ng-container matColumnDef="product">
           <th mat-header-cell *matHeaderCellDef>Produit</th>
           <td mat-cell *matCellDef="let product">
-            <div class="name">{{ product.name }}</div>
-            <div class="muted">{{ product.reference }}</div>
+            <a *ngIf="canManage; else productName" class="cell-link" [routerLink]="[product.id, 'edit']">{{ product.name }}</a>
+            <ng-template #productName><span class="cell-title">{{ product.name }}</span></ng-template>
+            <div class="cell-sub tabular">{{ product.reference }}</div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="category">
           <th mat-header-cell *matHeaderCellDef class="hide-sm">Catégorie</th>
-          <td mat-cell *matCellDef="let product" class="hide-sm">{{ product.categoryName }}</td>
+          <td mat-cell *matCellDef="let product" class="hide-sm muted">{{ product.categoryName }}</td>
         </ng-container>
 
         <ng-container matColumnDef="price">
-          <th mat-header-cell *matHeaderCellDef class="number">Prix de vente</th>
-          <td mat-cell *matCellDef="let product" class="number">
+          <th mat-header-cell *matHeaderCellDef class="num">Prix de vente</th>
+          <td mat-cell *matCellDef="let product" class="num">
             <div>{{ product.sellingPrice | number: '1.3-3' }} TND</div>
-            <div class="muted hide-sm">Achat : {{ product.purchasePrice | number: '1.3-3' }}</div>
+            <div class="cell-sub hide-sm">Achat {{ product.purchasePrice | number: '1.3-3' }}</div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="stock">
-          <th mat-header-cell *matHeaderCellDef class="number">Stock</th>
-          <td mat-cell *matCellDef="let product" class="number">
-            <span class="status-chip" [ngClass]="stockChipClass(stockLevel(product))">
+          <th mat-header-cell *matHeaderCellDef class="num">Stock</th>
+          <td mat-cell *matCellDef="let product" class="num">
+            <span class="status-chip no-dot tabular" [ngClass]="stockChipClass(stockLevel(product))">
               {{ product.quantity | number }}
             </span>
-            <div class="muted">min. {{ product.minimumStock | number }}</div>
+            <div class="cell-sub">min. {{ product.minimumStock | number }}</div>
           </td>
         </ng-container>
 
@@ -105,53 +117,44 @@
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef><span class="sr-only">Actions</span></th>
-          <td mat-cell *matCellDef="let product" class="actions">
-            <a
-              mat-icon-button
-              [routerLink]="[product.id, 'edit']"
-              [attr.aria-label]="'Modifier ' + product.name"
-              matTooltip="Modifier"
-            >
-              <mat-icon>edit</mat-icon>
-            </a>
+          <th mat-header-cell *matHeaderCellDef class="actions-col"><span class="sr-only">Actions</span></th>
+          <td mat-cell *matCellDef="let product" class="actions-col">
             <button
-              *ngIf="product.status === 'ACTIVE'; else reactivateButton"
               mat-icon-button
               type="button"
-              class="deactivate-button"
-              [attr.aria-label]="'Désactiver ' + product.name"
-              matTooltip="Désactiver"
-              (click)="deactivate(product)"
+              class="row-menu-button"
+              [matMenuTriggerFor]="rowMenu"
+              [matMenuTriggerData]="{ $implicit: product }"
+              [attr.aria-label]="'Actions pour ' + product.name"
             >
-              <mat-icon>block</mat-icon>
+              <mat-icon>more_horiz</mat-icon>
             </button>
-            <ng-template #reactivateButton>
-              <button
-                mat-icon-button
-                type="button"
-                class="reactivate-button"
-                [attr.aria-label]="'Réactiver ' + product.name"
-                matTooltip="Réactiver"
-                (click)="reactivate(product)"
-              >
-                <mat-icon>check_circle</mat-icon>
-              </button>
-            </ng-template>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
-        <tr mat-row *matRowDef="let row; columns: columns"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">Aucun produit trouvé.</td>
-        </tr>
+        <tr mat-row *matRowDef="let row; columns: columns" [class.inactive]="row.status === 'INACTIVE'"></tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state
+        *ngIf="hasFilters; else noProduct"
+        icon="search_off"
+        title="Aucun produit trouvé"
+        description="Aucun produit ne correspond à ces critères."
+      >
+        <button mat-stroked-button type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </app-empty-state>
+      <ng-template #noProduct>
+        <app-empty-state icon="inventory_2" title="Aucun produit trouvé" description="Le catalogue est vide pour le moment.">
+          <a mat-flat-button color="primary" routerLink="new" *ngIf="canManage"><mat-icon>add</mat-icon>Nouveau produit</a>
+        </app-empty-state>
+      </ng-template>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!errorMessage"
+      *ngIf="!errorMessage && total > 0"
       [length]="total"
       [pageIndex]="query.page"
       [pageSize]="query.size"
@@ -160,4 +163,29 @@
       (page)="onPage($event)"
     ></mat-paginator>
   </mat-card>
+
+  <mat-menu #rowMenu="matMenu" xPosition="before">
+    <ng-template matMenuContent let-product>
+      <a mat-menu-item class="edit-item" [routerLink]="[product.id, 'edit']">
+        <mat-icon>edit</mat-icon><span>Modifier</span>
+      </a>
+      <a mat-menu-item class="stock-item" [routerLink]="['/inventory', product.id]">
+        <mat-icon>history</mat-icon><span>Historique du stock</span>
+      </a>
+      <button
+        *ngIf="product.status === 'ACTIVE'; else reactivateItem"
+        mat-menu-item
+        type="button"
+        class="danger deactivate-button"
+        (click)="deactivate(product)"
+      >
+        <mat-icon>block</mat-icon><span>Désactiver</span>
+      </button>
+      <ng-template #reactivateItem>
+        <button mat-menu-item type="button" class="reactivate-button" (click)="reactivate(product)">
+          <mat-icon>check_circle</mat-icon><span>Réactiver</span>
+        </button>
+      </ng-template>
+    </ng-template>
+  </mat-menu>
 </div>

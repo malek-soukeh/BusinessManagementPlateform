@@ -1,60 +1,66 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>{{ isEmployee ? 'Mes commandes' : 'Commandes' }}</h1>
-      <p class="subtitle" *ngIf="!errorMessage && !loading">{{ total }} commande(s)</p>
-    </div>
+  <app-page-header
+    [title]="isEmployee ? 'Mes commandes' : 'Commandes'"
+    [subtitle]="isEmployee ? 'Les commandes que vous avez créées.' : 'Toutes les commandes clients, de la saisie à la livraison.'"
+    [breadcrumbs]="[{ label: 'Ventes' }, { label: 'Commandes' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new">
-      <mat-icon>add_shopping_cart</mat-icon>
+      <mat-icon>add</mat-icon>
       Nouvelle commande
     </a>
-  </div>
-
-  <mat-card class="filters">
-    <mat-form-field appearance="outline" class="search">
-      <mat-label>Rechercher</mat-label>
-      <input matInput [formControl]="search" placeholder="Numéro de commande (ORD-…)" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="status-filter">
-      <mat-label>Statut</mat-label>
-      <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)">
-        <mat-option value="">Tous</mat-option>
-        <mat-option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <span class="customer-filter status-chip tone-info" *ngIf="customerFilterName as name">
-      Client : {{ name }}
-      <button mat-icon-button type="button" class="clear-customer" aria-label="Retirer le filtre client" (click)="clearCustomer()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </span>
-  </mat-card>
+  </app-page-header>
 
   <mat-card class="table-card">
+    <div class="list-toolbar">
+      <app-search-field [formControl]="search" placeholder="N° de commande"></app-search-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)" aria-label="Filtrer par statut">
+          <mat-select-trigger><span class="filter-label">Statut</span>{{ statusFilterLabel(query.status) }}</mat-select-trigger>
+          <mat-option value="">Tous</mat-option>
+          <mat-option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="list-count" *ngIf="!errorMessage && !loading">{{ total }} commande(s)</span>
+    </div>
+
+    <div class="active-filters" *ngIf="hasFilters">
+      <button type="button" class="filter-chip" *ngIf="search.value" (click)="search.setValue('')">
+        « {{ search.value }} » <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.status" (click)="onStatusChange('')">
+        Statut : {{ statusFilterLabel(query.status) }} <mat-icon>close</mat-icon>
+      </button>
+      <button
+        type="button"
+        class="filter-chip customer-filter clear-customer"
+        *ngIf="customerFilterName as name"
+        aria-label="Retirer le filtre client"
+        (click)="clearCustomer()"
+      >
+        Client : {{ name }} <mat-icon>close</mat-icon>
+      </button>
+      <button mat-button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser</button>
+    </div>
+
     <mat-progress-bar mode="indeterminate" *ngIf="loading && rows.length"></mat-progress-bar>
 
     <div class="error-panel" role="alert" *ngIf="errorMessage">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span class="error-message">{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="reload()">Réessayer</button>
+      <button mat-stroked-button type="button" (click)="reload()">Réessayer</button>
     </div>
 
-    <div class="skeleton-rows" *ngIf="loading && !rows.length" aria-busy="true" aria-label="Chargement des commandes">
-      <div class="skeleton-row" *ngFor="let row of skeletonRows">
-        <app-skeleton width="25%" height="14px"></app-skeleton>
-        <app-skeleton width="40%" height="12px"></app-skeleton>
-      </div>
-    </div>
+    <app-table-skeleton *ngIf="loading && !rows.length" [columns]="5" label="Chargement des commandes"></app-table-skeleton>
 
     <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !rows.length)">
-      <table mat-table [dataSource]="rows" class="orders-table">
+      <table mat-table [dataSource]="rows" class="data-table" *ngIf="rows.length; else empty">
         <ng-container matColumnDef="number">
           <th mat-header-cell *matHeaderCellDef>N° commande</th>
           <td mat-cell *matCellDef="let order">
-            <a class="order-link" [routerLink]="[order.id]">{{ order.orderNumber }}</a>
+            <a class="cell-link order-link tabular" [routerLink]="[order.id]">{{ order.orderNumber }}</a>
           </td>
         </ng-container>
 
@@ -65,12 +71,12 @@
 
         <ng-container matColumnDef="date">
           <th mat-header-cell *matHeaderCellDef class="hide-sm">Date</th>
-          <td mat-cell *matCellDef="let order" class="hide-sm nowrap">{{ order.orderDate | date: 'dd/MM/yyyy' }}</td>
+          <td mat-cell *matCellDef="let order" class="hide-sm nowrap muted tabular">{{ order.orderDate | date: 'dd/MM/yyyy' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef class="number">Montant HT</th>
-          <td mat-cell *matCellDef="let order" class="number">{{ order.totalAmount | number: '1.3-3' }} TND</td>
+          <th mat-header-cell *matHeaderCellDef class="num">Montant HT</th>
+          <td mat-cell *matCellDef="let order" class="num">{{ order.totalAmount | number: '1.3-3' }} TND</td>
         </ng-container>
 
         <ng-container matColumnDef="status">
@@ -87,15 +93,27 @@
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">Aucune commande trouvée.</td>
-        </tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state
+        *ngIf="hasFilters; else noOrder"
+        icon="search_off"
+        title="Aucune commande trouvée."
+        description="Aucune commande ne correspond à ces critères."
+      >
+        <button mat-stroked-button type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </app-empty-state>
+      <ng-template #noOrder>
+        <app-empty-state icon="shopping_cart" title="Aucune commande trouvée." description="Les commandes saisies apparaîtront ici.">
+          <a mat-flat-button color="primary" routerLink="new"><mat-icon>add</mat-icon>Nouvelle commande</a>
+        </app-empty-state>
+      </ng-template>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!errorMessage"
+      *ngIf="!errorMessage && total > 0"
       [length]="total"
       [pageIndex]="query.page"
       [pageSize]="query.size"

@@ -1,39 +1,45 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>Utilisateurs</h1>
-      <p class="subtitle" *ngIf="!loading && !errorMessage">{{ total }} compte(s)</p>
-    </div>
+  <app-page-header
+    title="Utilisateurs"
+    subtitle="Comptes d'accès à la plateforme et leurs rôles."
+    [breadcrumbs]="[{ label: 'Administration' }, { label: 'Utilisateurs' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new">
-      <mat-icon>person_add</mat-icon>
+      <mat-icon>add</mat-icon>
       Nouvel utilisateur
     </a>
-  </div>
+  </app-page-header>
 
   <mat-card class="table-card">
+    <div class="list-toolbar">
+      <span class="list-count" *ngIf="!loading && !errorMessage">{{ total }} compte(s)</span>
+      <span class="spacer"></span>
+      <span class="toolbar-note">La recherche n'est pas proposée par l'API pour cette liste.</span>
+    </div>
+
     <mat-progress-bar mode="indeterminate" *ngIf="loading && rows.length"></mat-progress-bar>
 
     <div class="error-panel" role="alert" *ngIf="errorMessage">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span class="error-message">{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="load()">Réessayer</button>
+      <button mat-stroked-button type="button" (click)="load()">Réessayer</button>
     </div>
 
-    <div class="skeleton-rows" *ngIf="loading && !rows.length" aria-busy="true" aria-label="Chargement des utilisateurs">
-      <div class="skeleton-row" *ngFor="let row of skeletonRows">
-        <app-skeleton width="30%" height="14px"></app-skeleton>
-        <app-skeleton width="45%" height="12px"></app-skeleton>
-      </div>
-    </div>
+    <app-table-skeleton *ngIf="loading && !rows.length" [columns]="4" label="Chargement des utilisateurs"></app-table-skeleton>
 
     <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !rows.length)">
-      <table mat-table [dataSource]="rows" class="users-table">
+      <table mat-table [dataSource]="rows" class="data-table" *ngIf="rows.length; else empty">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Nom</th>
           <td mat-cell *matCellDef="let user">
-            <span class="name">{{ user.firstName }} {{ user.lastName }}</span>
-            <span class="status-chip tone-primary self" *ngIf="isSelf(user)">Vous</span>
-            <div class="muted" *ngIf="user.phone">{{ user.phone }}</div>
+            <div class="identity">
+              <span class="avatar" aria-hidden="true">{{ initials(user) }}</span>
+              <div>
+                <a class="cell-link" [routerLink]="[user.id, 'edit']">{{ user.firstName }} {{ user.lastName }}</a>
+                <span class="status-chip tone-info no-dot self" *ngIf="isSelf(user)">Vous</span>
+                <div class="cell-sub" *ngIf="user.phone">{{ user.phone }}</div>
+              </div>
+            </div>
           </td>
         </ng-container>
 
@@ -60,69 +66,36 @@
 
         <ng-container matColumnDef="createdAt">
           <th mat-header-cell *matHeaderCellDef class="hide-md">Créé le</th>
-          <td mat-cell *matCellDef="let user" class="hide-md muted">{{ user.createdAt | date: 'dd/MM/yyyy' }}</td>
+          <td mat-cell *matCellDef="let user" class="hide-md muted tabular">{{ user.createdAt | date: 'dd/MM/yyyy' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef><span class="sr-only">Actions</span></th>
-          <td mat-cell *matCellDef="let user" class="actions">
-            <a
+          <th mat-header-cell *matHeaderCellDef class="actions-col"><span class="sr-only">Actions</span></th>
+          <td mat-cell *matCellDef="let user" class="actions-col">
+            <button
               mat-icon-button
-              [routerLink]="[user.id, 'edit']"
-              [attr.aria-label]="'Modifier ' + user.firstName + ' ' + user.lastName"
-              matTooltip="Modifier"
+              type="button"
+              class="row-menu-button"
+              [matMenuTriggerFor]="rowMenu"
+              [matMenuTriggerData]="{ $implicit: user }"
+              [attr.aria-label]="'Actions pour ' + user.firstName + ' ' + user.lastName"
             >
-              <mat-icon>edit</mat-icon>
-            </a>
-            <ng-container *ngIf="!isSelf(user)">
-              <button
-                *ngIf="user.status === 'ACTIVE'; else reactivateButton"
-                mat-icon-button
-                type="button"
-                class="deactivate-button"
-                [attr.aria-label]="'Désactiver ' + user.firstName + ' ' + user.lastName"
-                matTooltip="Désactiver"
-                (click)="deactivate(user)"
-              >
-                <mat-icon>block</mat-icon>
-              </button>
-              <ng-template #reactivateButton>
-                <button
-                  mat-icon-button
-                  type="button"
-                  class="reactivate-button"
-                  [attr.aria-label]="'Réactiver ' + user.firstName + ' ' + user.lastName"
-                  matTooltip="Réactiver"
-                  (click)="reactivate(user)"
-                >
-                  <mat-icon>check_circle</mat-icon>
-                </button>
-              </ng-template>
-              <button
-                mat-icon-button
-                type="button"
-                class="delete-button"
-                [attr.aria-label]="'Supprimer ' + user.firstName + ' ' + user.lastName"
-                matTooltip="Supprimer"
-                (click)="delete(user)"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </ng-container>
+              <mat-icon>more_horiz</mat-icon>
+            </button>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns" [class.inactive]="row.status === 'INACTIVE'"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">Aucun utilisateur.</td>
-        </tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state icon="manage_accounts" title="Aucun utilisateur."></app-empty-state>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!errorMessage"
+      *ngIf="!errorMessage && total > 0"
       [length]="total"
       [pageIndex]="pageIndex"
       [pageSize]="pageSize"
@@ -131,4 +104,31 @@
       (page)="onPage($event)"
     ></mat-paginator>
   </mat-card>
+
+  <mat-menu #rowMenu="matMenu" xPosition="before">
+    <ng-template matMenuContent let-user>
+      <a mat-menu-item class="edit-item" [routerLink]="[user.id, 'edit']">
+        <mat-icon>edit</mat-icon><span>Modifier</span>
+      </a>
+      <ng-container *ngIf="!isSelf(user)">
+        <button
+          *ngIf="user.status === 'ACTIVE'; else reactivateItem"
+          mat-menu-item
+          type="button"
+          class="deactivate-button"
+          (click)="deactivate(user)"
+        >
+          <mat-icon>block</mat-icon><span>Désactiver</span>
+        </button>
+        <ng-template #reactivateItem>
+          <button mat-menu-item type="button" class="reactivate-button" (click)="reactivate(user)">
+            <mat-icon>check_circle</mat-icon><span>Réactiver</span>
+          </button>
+        </ng-template>
+        <button mat-menu-item type="button" class="danger delete-button" (click)="delete(user)">
+          <mat-icon>delete</mat-icon><span>Supprimer</span>
+        </button>
+      </ng-container>
+    </ng-template>
+  </mat-menu>
 </div>

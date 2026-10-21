@@ -1,58 +1,71 @@
-<div class="page">
-  <div class="header">
-    <a mat-icon-button routerLink="/categories" aria-label="Retour à la liste">
-      <mat-icon>arrow_back</mat-icon>
-    </a>
-    <h1>{{ isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h1>
-  </div>
+<div class="page narrow">
+  <app-page-header
+    [title]="isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie'"
+    [breadcrumbs]="[{ label: 'Gestion' }, { label: 'Catégories', link: '/categories' }, { label: isEdit ? 'Modification' : 'Nouvelle' }]"
+  ></app-page-header>
 
   <mat-card class="form-skeleton" *ngIf="loading" aria-busy="true" aria-label="Chargement du formulaire">
-    <app-skeleton height="52px"></app-skeleton>
+    <app-skeleton height="40px"></app-skeleton>
     <app-skeleton height="80px"></app-skeleton>
-    <app-skeleton height="52px"></app-skeleton>
+    <app-skeleton height="40px"></app-skeleton>
   </mat-card>
 
   <div class="panel error-panel" role="alert" *ngIf="loadError">
     <mat-icon aria-hidden="true">error_outline</mat-icon>
     <span class="error-message">{{ loadError }}</span>
-    <a mat-button color="primary" routerLink="/categories">Retour à la liste</a>
+    <a mat-stroked-button routerLink="/categories">Retour à la liste</a>
   </div>
 
-  <mat-card *ngIf="!loading && !loadError">
+  <mat-card class="form-card" *ngIf="!loading && !loadError">
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <mat-form-field appearance="outline">
-        <mat-label>Nom</mat-label>
-        <input matInput formControlName="name" autocomplete="off" />
-        <mat-error *ngIf="form.controls.name.hasError('required')">Le nom est obligatoire.</mat-error>
-        <mat-error *ngIf="form.controls.name.hasError('maxlength')">100 caractères maximum.</mat-error>
-        <mat-error *ngIf="form.controls.name.hasError('taken')">Ce nom de catégorie est déjà utilisé.</mat-error>
-      </mat-form-field>
+      <section class="form-section">
+        <div>
+          <h2 class="form-section-title">Catégorie</h2>
+          <p class="form-section-text">Le nom doit être unique dans tout le catalogue.</p>
+        </div>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Nom</mat-label>
+            <input matInput formControlName="name" autocomplete="off" />
+            <mat-error *ngIf="form.controls.name.hasError('required')">Le nom est obligatoire.</mat-error>
+            <mat-error *ngIf="form.controls.name.hasError('maxlength')">100 caractères maximum.</mat-error>
+            <mat-error *ngIf="form.controls.name.hasError('taken')">Ce nom de catégorie est déjà utilisé.</mat-error>
+          </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Description</mat-label>
-        <textarea matInput formControlName="description" rows="3"></textarea>
-        <mat-hint align="end">{{ form.controls.description.value.length }} / 255</mat-hint>
-        <mat-error *ngIf="form.controls.description.hasError('maxlength')">255 caractères maximum.</mat-error>
-      </mat-form-field>
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3"></textarea>
+            <mat-hint align="end">{{ form.controls.description.value.length }} / 255</mat-hint>
+            <mat-error *ngIf="form.controls.description.hasError('maxlength')">255 caractères maximum.</mat-error>
+          </mat-form-field>
+        </div>
+      </section>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Catégorie parente</mat-label>
-        <mat-select formControlName="parentId">
-          <mat-option [value]="null">Aucune (catégorie principale)</mat-option>
-          <mat-option *ngFor="let node of parentOptions" [value]="node.category.id">
-            <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
-          </mat-option>
-        </mat-select>
-        <mat-hint *ngIf="isEdit">Ses sous-catégories ne peuvent pas devenir sa catégorie parente.</mat-hint>
-        <mat-error *ngIf="form.controls.parentId.hasError('cycle')">
-          Une catégorie ne peut pas être rangée dans une de ses sous-catégories.
-        </mat-error>
-        <mat-error *ngIf="form.controls.parentId.hasError('missing')">Cette catégorie parente n'existe plus.</mat-error>
-      </mat-form-field>
+      <section class="form-section">
+        <div>
+          <h2 class="form-section-title">Rangement</h2>
+          <p class="form-section-text">Sans catégorie parente, elle devient une catégorie principale.</p>
+        </div>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Catégorie parente</mat-label>
+            <mat-select formControlName="parentId">
+              <mat-option [value]="null">Aucune (catégorie principale)</mat-option>
+              <mat-option *ngFor="let node of parentOptions" [value]="node.category.id">
+                <span [style.padding-left.px]="node.depth * 16">{{ node.category.name }}</span>
+              </mat-option>
+            </mat-select>
+            <mat-hint *ngIf="isEdit">Ses sous-catégories ne peuvent pas devenir sa catégorie parente.</mat-hint>
+            <mat-error *ngIf="form.controls.parentId.hasError('cycle')">
+              Une catégorie ne peut pas être rangée dans une de ses sous-catégories.
+            </mat-error>
+            <mat-error *ngIf="form.controls.parentId.hasError('missing')">Cette catégorie parente n'existe plus.</mat-error>
+          </mat-form-field>
+        </div>
+      </section>
 
-      <p class="form-error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
-
-      <div class="actions">
+      <div class="form-actions">
+        <p class="form-error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
         <a mat-button routerLink="/categories">Annuler</a>
         <button mat-flat-button color="primary" type="submit" [disabled]="saving">
           <mat-spinner *ngIf="saving" diameter="18"></mat-spinner>

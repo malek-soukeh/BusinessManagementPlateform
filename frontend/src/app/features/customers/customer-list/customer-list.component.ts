@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
-  BehaviorSubject, Subscription, catchError, debounceTime, distinctUntilChanged,
+  BehaviorSubject, Subscription, catchError, debounceTime,
   filter, map, of, switchMap, tap
 } from 'rxjs';
 
@@ -59,7 +59,12 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.add(
       this.search.valueChanges
-        .pipe(debounceTime(300), distinctUntilChanged())
+        .pipe(
+          debounceTime(300),
+          map(q => q.trim()),
+          // Compared with the current query, not with the previous keystroke: a reset changes the query.
+          filter(q => q !== this.query$.value.q)
+        )
         .subscribe(q => this.patchQuery({ q, page: 0 }))
     );
 
@@ -92,6 +97,21 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  /** A search or a status other than the default one (active customers) is in use. */
+  get hasFilters(): boolean {
+    return this.search.value.trim() !== '' || this.status !== 'ACTIVE';
+  }
+
+  statusLabel(status: CustomerStatus | ''): string {
+    return status === 'ACTIVE' ? 'Actifs' : status === 'INACTIVE' ? 'Inactifs' : 'Tous';
+  }
+
+  resetFilters(): void {
+    // Without event: the debounced search would send a second request.
+    this.search.setValue('', { emitEvent: false });
+    this.patchQuery({ q: '', status: 'ACTIVE', page: 0 });
   }
 
   onStatusChange(status: CustomerStatus | ''): void {

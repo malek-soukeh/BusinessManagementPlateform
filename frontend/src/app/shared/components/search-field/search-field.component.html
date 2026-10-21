@@ -1,0 +1,23 @@
+<div class="search" [class.focused]="focused" [class.disabled]="disabled">
+  <mat-icon class="lead" aria-hidden="true">search</mat-icon>
+  <input
+    #input
+    type="search"
+    autocomplete="off"
+    spellcheck="false"
+    [value]="value"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [attr.aria-label]="label ?? placeholder"
+    (input)="onInput($event)"
+    (focus)="focused = true"
+    (blur)="onBlur()"
+    (keydown.escape)="clear()"
+  />
+  <button *ngIf="value; else hint" type="button" class="clear" aria-label="Effacer la recherche" (click)="clear()">
+    <mat-icon>close</mat-icon>
+  </button>
+  <ng-template #hint>
+    <kbd *ngIf="shortcut && !focused" class="shortcut" aria-hidden="true">/</kbd>
+  </ng-template>
+</div>

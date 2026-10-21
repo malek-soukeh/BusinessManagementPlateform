@@ -16,6 +16,7 @@ import { Product } from '../../../core/models/product.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProductService } from '../../../core/services/product.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { clickRowMenuItem, openRowMenu } from '../../../testing/menu.helpers';
 import { InventoryListComponent } from './inventory-list.component';
 
 registerLocaleData(localeFr);
@@ -89,7 +90,7 @@ describe('InventoryListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of({ quantityAfter: 9 }) });
     const fixture = create('MANAGER');
 
-    (fixture.nativeElement.querySelector('.adjust-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 0, 'adjust-button');
 
     expect(dialog.open.calls.mostRecent().args[1].data.product.id).toBe(1);
     expect(snackBar.open).toHaveBeenCalledWith('Stock de Produit 1 : 9.', 'OK', jasmine.anything());
@@ -100,7 +101,7 @@ describe('InventoryListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(undefined) });
     const fixture = create('MANAGER');
 
-    (fixture.nativeElement.querySelector('.adjust-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 0, 'adjust-button');
 
     expect(products.list).toHaveBeenCalledTimes(1);
   });
@@ -108,7 +109,7 @@ describe('InventoryListComponent', () => {
   it('shows the history to an employee but not the adjustment', () => {
     const fixture = create('EMPLOYEE');
 
-    expect(fixture.nativeElement.querySelector('.adjust-button')).toBeNull();
+    expect(openRowMenu(fixture, 0).querySelector('.adjust-button')).toBeNull();
     expect(fixture.nativeElement.querySelector('a[aria-label="Historique du stock de Produit 1"]')).not.toBeNull();
   });
 

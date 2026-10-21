@@ -10,6 +10,7 @@ import { Page } from '../../../core/models/page.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CustomerService } from '../../../core/services/customer.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { clickRowMenuItem, openRowMenu } from '../../../testing/menu.helpers';
 import { CustomerListComponent } from './customer-list.component';
 
 describe('CustomerListComponent', () => {
@@ -66,7 +67,7 @@ describe('CustomerListComponent', () => {
     const fixture = create();
 
     expect(rows(fixture).length).toBe(0);
-    expect(fixture.nativeElement.querySelector('.empty').textContent).toContain('Aucun client trouvé');
+    expect(fixture.nativeElement.querySelector('app-empty-state').textContent).toContain('Aucun client trouvé');
   });
 
   it('searches after a short pause and goes back to the first page', fakeAsync(() => {
@@ -106,7 +107,7 @@ describe('CustomerListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(true) });
     const fixture = create();
 
-    fixture.nativeElement.querySelector('button[aria-label="Désactiver"]').click();
+    clickRowMenuItem(fixture, 0, 'deactivate-button');
 
     expect(dialog.open).toHaveBeenCalled();
     expect(service.deactivate).toHaveBeenCalledWith(1);
@@ -118,7 +119,7 @@ describe('CustomerListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(false) });
     const fixture = create();
 
-    fixture.nativeElement.querySelector('button[aria-label="Désactiver"]').click();
+    clickRowMenuItem(fixture, 0, 'deactivate-button');
 
     expect(service.deactivate).not.toHaveBeenCalled();
     expect(service.list).toHaveBeenCalledTimes(1);
@@ -129,7 +130,7 @@ describe('CustomerListComponent', () => {
     service.update.and.returnValue(of(customer(2)));
     const fixture = create();
 
-    fixture.nativeElement.querySelector('button[aria-label="Réactiver"]').click();
+    clickRowMenuItem(fixture, 0, 'reactivate-button');
 
     expect(service.update).toHaveBeenCalledWith(
       2, jasmine.objectContaining({ email: 'c2@mail.tn', status: 'ACTIVE' }));
@@ -141,9 +142,10 @@ describe('CustomerListComponent', () => {
 
     const fixture = create(false);
 
-    expect(fixture.nativeElement.querySelector('button[aria-label="Désactiver"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('button[aria-label="Réactiver"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('a[aria-label="Modifier"]')).not.toBeNull();
+    const activeMenu = openRowMenu(fixture, 0);
+    expect(activeMenu.querySelector('.deactivate-button')).toBeNull();
+    expect(activeMenu.querySelector('.edit-item')).not.toBeNull();
+    expect(openRowMenu(fixture, 1).querySelector('.reactivate-button')).toBeNull();
   });
 
   it('shows the error and lets the user retry', () => {
@@ -153,13 +155,30 @@ describe('CustomerListComponent', () => {
 
     const fixture = create();
 
-    expect(fixture.nativeElement.querySelector('.error-banner').textContent).toContain('Serveur injoignable');
+    expect(fixture.nativeElement.querySelector('.error-panel').textContent).toContain('Serveur injoignable');
 
-    fixture.nativeElement.querySelector('.error-banner button').click();
+    fixture.nativeElement.querySelector('.error-panel button').click();
     fixture.detectChanges();
 
     expect(service.list).toHaveBeenCalledTimes(2);
-    expect(fixture.nativeElement.querySelector('.error-banner')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.error-panel')).toBeNull();
     expect(rows(fixture).length).toBe(1);
+  });
+
+  it('shows the active filters as chips and resets them', () => {
+    service.list.and.returnValue(of(page([])));
+    const fixture = create();
+
+    fixture.componentInstance.onStatusChange('INACTIVE');
+    fixture.detectChanges();
+
+    const chip = fixture.nativeElement.querySelector('.filter-chip') as HTMLButtonElement;
+    expect(chip.textContent).toContain('Statut : Inactifs');
+
+    (fixture.nativeElement.querySelector('.reset-filters') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(service.list.calls.mostRecent().args[0]).toEqual({ q: '', status: 'ACTIVE', page: 0, size: 10 });
+    expect(fixture.nativeElement.querySelector('.active-filters')).toBeNull();
   });
 });

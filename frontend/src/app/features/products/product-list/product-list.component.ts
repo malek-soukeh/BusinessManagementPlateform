@@ -5,7 +5,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import {
-  BehaviorSubject, Subscription, catchError, debounceTime, distinctUntilChanged,
+  BehaviorSubject, Subscription, catchError, debounceTime,
   filter, map, of, switchMap, tap
 } from 'rxjs';
 
@@ -77,7 +77,12 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
     this.subscriptions.add(
       this.search.valueChanges
-        .pipe(debounceTime(300), distinctUntilChanged())
+        .pipe(
+          debounceTime(300),
+          map(q => q.trim()),
+          // Compared with the current query, not with the previous keystroke: a reset changes the query.
+          filter(q => q !== this.query$.value.q)
+        )
         .subscribe(q => this.patchQuery({ q, page: 0 }))
     );
 
@@ -110,6 +115,26 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  /** Any filter other than the defaults (active products, every category) is in use. */
+  get hasFilters(): boolean {
+    const query = this.query;
+    return this.search.value.trim() !== '' || query.categoryId !== null || query.status !== 'ACTIVE' || query.lowStock;
+  }
+
+  categoryName(id: number | null): string {
+    return id === null ? 'Toutes' : this.categories.find(node => node.category.id === id)?.category.name ?? '—';
+  }
+
+  statusFilterLabel(status: ProductStatus | ''): string {
+    return status === 'ACTIVE' ? 'Actifs' : status === 'INACTIVE' ? 'Inactifs' : 'Tous';
+  }
+
+  resetFilters(): void {
+    // Without event: the debounced search would send a second request.
+    this.search.setValue('', { emitEvent: false });
+    this.patchQuery({ q: '', categoryId: null, status: 'ACTIVE', lowStock: false, page: 0 });
   }
 
   onCategoryChange(categoryId: number | null): void {

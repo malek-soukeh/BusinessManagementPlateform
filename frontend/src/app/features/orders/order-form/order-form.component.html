@@ -1,14 +1,9 @@
-<div class="page">
-  <div class="header">
-    <a
-      mat-icon-button
-      [routerLink]="isEdit && orderId ? ['/orders', orderId] : ['/orders']"
-      aria-label="Retour"
-    >
-      <mat-icon>arrow_back</mat-icon>
-    </a>
-    <h1>{{ isEdit ? 'Modifier la commande ' + (order?.orderNumber ?? '') : 'Nouvelle commande' }}</h1>
-  </div>
+<div class="page narrow">
+  <app-page-header
+    [title]="isEdit ? 'Modifier la commande ' + (order?.orderNumber ?? '') : 'Nouvelle commande'"
+    subtitle="Les prix sont ceux du catalogue au moment de l'enregistrement."
+    [breadcrumbs]="[{ label: 'Ventes' }, { label: 'Commandes', link: '/orders' }, { label: isEdit ? 'Modification' : 'Nouvelle' }]"
+  ></app-page-header>
 
   <mat-card class="form-skeleton" *ngIf="loading" aria-busy="true" aria-label="Chargement de la commande">
     <app-skeleton height="52px"></app-skeleton>

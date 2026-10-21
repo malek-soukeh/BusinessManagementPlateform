@@ -128,6 +128,6 @@ describe('OrderListComponent', () => {
     service.list.and.returnValue(of(page([])));
     const fixture = create();
 
-    expect(fixture.nativeElement.querySelector('.empty').textContent).toContain('Aucune commande trouvée.');
+    expect(fixture.nativeElement.querySelector('app-empty-state').textContent).toContain('Aucune commande trouvée.');
   });
 });

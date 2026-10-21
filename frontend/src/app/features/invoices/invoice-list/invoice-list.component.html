@@ -1,61 +1,68 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>Factures</h1>
-      <p class="subtitle" *ngIf="!errorMessage && !loading">{{ total }} facture(s)</p>
-    </div>
+  <app-page-header
+    title="Factures"
+    subtitle="Facturation des commandes, échéances et encaissements."
+    [breadcrumbs]="[{ label: 'Ventes' }, { label: 'Factures' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new" *ngIf="canCreate">
-      <mat-icon>receipt_long</mat-icon>
+      <mat-icon>add</mat-icon>
       Nouvelle facture
     </a>
-  </div>
-
-  <mat-card class="filters">
-    <mat-form-field appearance="outline" class="search">
-      <mat-label>Rechercher</mat-label>
-      <input matInput [formControl]="search" placeholder="N° de facture ou de commande" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="select-filter">
-      <mat-label>Statut</mat-label>
-      <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)">
-        <mat-option value="">Tous</mat-option>
-        <mat-option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="select-filter">
-      <mat-label>Paiement</mat-label>
-      <mat-select [value]="query.paymentStatus" (selectionChange)="onPaymentStatusChange($event.value)">
-        <mat-option value="">Tous</mat-option>
-        <mat-option *ngFor="let status of paymentStatuses" [value]="status">{{ paymentLabel(status) }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-  </mat-card>
+  </app-page-header>
 
   <mat-card class="table-card">
+    <div class="list-toolbar">
+      <app-search-field [formControl]="search" placeholder="N° de facture ou de commande"></app-search-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)" aria-label="Filtrer par statut">
+          <mat-select-trigger><span class="filter-label">Statut</span>{{ statusFilterLabel(query.status) }}</mat-select-trigger>
+          <mat-option value="">Tous</mat-option>
+          <mat-option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="query.paymentStatus" (selectionChange)="onPaymentStatusChange($event.value)" aria-label="Filtrer par paiement">
+          <mat-select-trigger><span class="filter-label">Paiement</span>{{ paymentFilterLabel(query.paymentStatus) }}</mat-select-trigger>
+          <mat-option value="">Tous</mat-option>
+          <mat-option *ngFor="let status of paymentStatuses" [value]="status">{{ paymentLabel(status) }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="list-count" *ngIf="!errorMessage && !loading">{{ total }} facture(s)</span>
+    </div>
+
+    <div class="active-filters" *ngIf="hasFilters">
+      <button type="button" class="filter-chip" *ngIf="search.value" (click)="search.setValue('')">
+        « {{ search.value }} » <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.status" (click)="onStatusChange('')">
+        Statut : {{ statusFilterLabel(query.status) }} <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="query.paymentStatus" (click)="onPaymentStatusChange('')">
+        Paiement : {{ paymentFilterLabel(query.paymentStatus) }} <mat-icon>close</mat-icon>
+      </button>
+      <button mat-button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser</button>
+    </div>
+
     <mat-progress-bar mode="indeterminate" *ngIf="loading && rows.length"></mat-progress-bar>
 
     <div class="error-panel" role="alert" *ngIf="errorMessage">
       <mat-icon aria-hidden="true">error_outline</mat-icon>
       <span class="error-message">{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="reload()">Réessayer</button>
+      <button mat-stroked-button type="button" (click)="reload()">Réessayer</button>
     </div>
 
-    <div class="skeleton-rows" *ngIf="loading && !rows.length" aria-busy="true" aria-label="Chargement des factures">
-      <div class="skeleton-row" *ngFor="let row of skeletonRows">
-        <app-skeleton width="25%" height="14px"></app-skeleton>
-        <app-skeleton width="40%" height="12px"></app-skeleton>
-      </div>
-    </div>
+    <app-table-skeleton *ngIf="loading && !rows.length" [columns]="6" label="Chargement des factures"></app-table-skeleton>
 
     <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !rows.length)">
-      <table mat-table [dataSource]="rows" class="invoices-table">
+      <table mat-table [dataSource]="rows" class="data-table" *ngIf="rows.length; else empty">
         <ng-container matColumnDef="number">
           <th mat-header-cell *matHeaderCellDef>N° facture</th>
           <td mat-cell *matCellDef="let invoice">
-            <a class="link" [routerLink]="[invoice.id]">{{ invoice.invoiceNumber }}</a>
+            <a class="cell-link link tabular" [routerLink]="[invoice.id]">{{ invoice.invoiceNumber }}</a>
           </td>
         </ng-container>
 
@@ -66,20 +73,20 @@
 
         <ng-container matColumnDef="order">
           <th mat-header-cell *matHeaderCellDef class="hide-md">Commande</th>
-          <td mat-cell *matCellDef="let invoice" class="hide-md muted nowrap">{{ invoice.orderNumber }}</td>
+          <td mat-cell *matCellDef="let invoice" class="hide-md muted nowrap tabular">{{ invoice.orderNumber }}</td>
         </ng-container>
 
         <ng-container matColumnDef="dueDate">
           <th mat-header-cell *matHeaderCellDef class="hide-sm">Échéance</th>
-          <td mat-cell *matCellDef="let invoice" class="hide-sm nowrap">
+          <td mat-cell *matCellDef="let invoice" class="hide-sm nowrap tabular">
             {{ invoice.dueDate | date: 'dd/MM/yyyy' }}
             <div class="late" *ngIf="delay(invoice) > 0">{{ delay(invoice) }} j de retard</div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef class="number">Total TTC</th>
-          <td mat-cell *matCellDef="let invoice" class="number">{{ invoice.totalAmount | number: '1.3-3' }} TND</td>
+          <th mat-header-cell *matHeaderCellDef class="num">Total TTC</th>
+          <td mat-cell *matCellDef="let invoice" class="num">{{ invoice.totalAmount | number: '1.3-3' }} TND</td>
         </ng-container>
 
         <ng-container matColumnDef="status">
@@ -100,15 +107,21 @@
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">Aucune facture trouvée.</td>
-        </tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state
+        [icon]="hasFilters ? 'search_off' : 'receipt_long'"
+        title="Aucune facture trouvée."
+        [description]="hasFilters ? 'Aucune facture ne correspond à ces critères.' : 'Les factures créées depuis les commandes apparaîtront ici.'"
+      >
+        <button *ngIf="hasFilters" mat-stroked-button type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </app-empty-state>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!errorMessage"
+      *ngIf="!errorMessage && total > 0"
       [length]="total"
       [pageIndex]="query.page"
       [pageSize]="query.size"

@@ -1,115 +1,120 @@
 <div class="page">
-  <div class="header">
-    <div>
-      <h1>Clients</h1>
-      <p class="subtitle" *ngIf="!errorMessage">{{ total }} résultat(s)</p>
-    </div>
+  <app-page-header
+    title="Clients"
+    subtitle="Les clients à qui vous vendez et leurs coordonnées."
+    [breadcrumbs]="[{ label: 'Gestion' }, { label: 'Clients' }]"
+  >
     <a mat-flat-button color="primary" routerLink="new">
-      <mat-icon>person_add</mat-icon>
+      <mat-icon>add</mat-icon>
       Nouveau client
     </a>
-  </div>
-
-  <mat-card class="filters">
-    <mat-form-field appearance="outline" class="search">
-      <mat-label>Rechercher</mat-label>
-      <input matInput [formControl]="search" placeholder="Nom, email, société, téléphone" />
-      <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="status-filter">
-      <mat-label>Statut</mat-label>
-      <mat-select [value]="status" (selectionChange)="onStatusChange($event.value)">
-        <mat-option value="ACTIVE">Actifs</mat-option>
-        <mat-option value="INACTIVE">Inactifs</mat-option>
-        <mat-option value="">Tous</mat-option>
-      </mat-select>
-    </mat-form-field>
-  </mat-card>
+  </app-page-header>
 
   <mat-card class="table-card">
-    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+    <div class="list-toolbar">
+      <app-search-field [formControl]="search" placeholder="Nom, email, société, téléphone"></app-search-field>
 
-    <div class="error-banner" *ngIf="errorMessage">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{ errorMessage }}</span>
-      <button mat-button color="primary" type="button" (click)="reload()">Réessayer</button>
+      <mat-form-field appearance="outline" class="field-sm filter-field" subscriptSizing="dynamic">
+        <mat-select [value]="status" (selectionChange)="onStatusChange($event.value)" aria-label="Filtrer par statut">
+          <mat-select-trigger><span class="filter-label">Statut</span>{{ statusLabel(status) }}</mat-select-trigger>
+          <mat-option value="ACTIVE">Actifs</mat-option>
+          <mat-option value="INACTIVE">Inactifs</mat-option>
+          <mat-option value="">Tous</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="list-count" *ngIf="!errorMessage && !loading">{{ total }} client(s)</span>
     </div>
 
-    <div class="table-wrapper" *ngIf="!errorMessage">
-      <table mat-table [dataSource]="customers" class="customers-table">
+    <div class="active-filters" *ngIf="hasFilters">
+      <button type="button" class="filter-chip" *ngIf="search.value" (click)="search.setValue('')">
+        « {{ search.value }} » <mat-icon>close</mat-icon>
+      </button>
+      <button type="button" class="filter-chip" *ngIf="status !== 'ACTIVE'" (click)="onStatusChange('ACTIVE')">
+        Statut : {{ statusLabel(status) }} <mat-icon>close</mat-icon>
+      </button>
+      <button mat-button type="button" class="reset-filters" (click)="resetFilters()">Réinitialiser</button>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading && customers.length"></mat-progress-bar>
+
+    <div class="error-panel" role="alert" *ngIf="errorMessage">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span class="error-message">{{ errorMessage }}</span>
+      <button mat-stroked-button type="button" (click)="reload()">Réessayer</button>
+    </div>
+
+    <app-table-skeleton *ngIf="loading && !customers.length" [columns]="4" label="Chargement des clients"></app-table-skeleton>
+
+    <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !customers.length)">
+      <table mat-table [dataSource]="customers" class="data-table" *ngIf="customers.length; else empty">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Client</th>
           <td mat-cell *matCellDef="let customer">
-            <div class="name">{{ customer.firstName }} {{ customer.lastName }}</div>
-            <div class="muted" *ngIf="customer.company">{{ customer.company }}</div>
+            <a class="cell-link" [routerLink]="[customer.id, 'edit']">{{ customer.firstName }} {{ customer.lastName }}</a>
+            <div class="cell-sub" *ngIf="customer.company">{{ customer.company }}</div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="email">
-          <th mat-header-cell *matHeaderCellDef>Email</th>
-          <td mat-cell *matCellDef="let customer">{{ customer.email }}</td>
+          <th mat-header-cell *matHeaderCellDef class="hide-sm">Email</th>
+          <td mat-cell *matCellDef="let customer" class="hide-sm">{{ customer.email }}</td>
         </ng-container>
 
         <ng-container matColumnDef="phone">
-          <th mat-header-cell *matHeaderCellDef class="hide-sm">Téléphone</th>
-          <td mat-cell *matCellDef="let customer" class="hide-sm">{{ customer.phone || '—' }}</td>
+          <th mat-header-cell *matHeaderCellDef class="hide-md">Téléphone</th>
+          <td mat-cell *matCellDef="let customer" class="hide-md muted tabular">{{ customer.phone || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Statut</th>
           <td mat-cell *matCellDef="let customer">
-            <span class="badge" [class.inactive]="customer.status === 'INACTIVE'">
+            <span class="status-chip" [ngClass]="customer.status === 'ACTIVE' ? 'tone-success' : 'tone-muted'">
               {{ customer.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}
             </span>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let customer" class="actions">
-            <a mat-icon-button [routerLink]="[customer.id, 'edit']" aria-label="Modifier" matTooltip="Modifier">
-              <mat-icon>edit</mat-icon>
-            </a>
-            <ng-container *ngIf="canManage">
-              <button
-                *ngIf="customer.status === 'ACTIVE'; else reactivateButton"
-                mat-icon-button
-                type="button"
-                aria-label="Désactiver"
-                matTooltip="Désactiver"
-                (click)="deactivate(customer)"
-              >
-                <mat-icon>block</mat-icon>
-              </button>
-              <ng-template #reactivateButton>
-                <button
-                  mat-icon-button
-                  type="button"
-                  aria-label="Réactiver"
-                  matTooltip="Réactiver"
-                  (click)="reactivate(customer)"
-                >
-                  <mat-icon>check_circle</mat-icon>
-                </button>
-              </ng-template>
-            </ng-container>
+          <th mat-header-cell *matHeaderCellDef class="actions-col"><span class="sr-only">Actions</span></th>
+          <td mat-cell *matCellDef="let customer" class="actions-col">
+            <button
+              mat-icon-button
+              type="button"
+              class="row-menu-button"
+              [matMenuTriggerFor]="rowMenu"
+              [matMenuTriggerData]="{ $implicit: customer }"
+              [attr.aria-label]="'Actions pour ' + customer.firstName + ' ' + customer.lastName"
+            >
+              <mat-icon>more_horiz</mat-icon>
+            </button>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
-        <tr mat-row *matRowDef="let row; columns: columns"></tr>
-
-        <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty" [attr.colspan]="columns.length">
-            <span *ngIf="!loading">Aucun client trouvé.</span>
-          </td>
-        </tr>
+        <tr mat-row *matRowDef="let row; columns: columns" [class.inactive]="row.status === 'INACTIVE'"></tr>
       </table>
     </div>
 
+    <ng-template #empty>
+      <app-empty-state
+        *ngIf="hasFilters; else noCustomer"
+        icon="search_off"
+        title="Aucun client trouvé"
+        description="Aucun client ne correspond à ces critères."
+      >
+        <button mat-stroked-button type="button" (click)="resetFilters()">Réinitialiser les filtres</button>
+      </app-empty-state>
+      <ng-template #noCustomer>
+        <app-empty-state icon="people" title="Aucun client trouvé" description="Ajoutez votre premier client pour pouvoir créer des commandes.">
+          <a mat-flat-button color="primary" routerLink="new"><mat-icon>add</mat-icon>Nouveau client</a>
+        </app-empty-state>
+      </ng-template>
+    </ng-template>
+
     <mat-paginator
-      *ngIf="!errorMessage"
+      *ngIf="!errorMessage && total > 0"
       [length]="total"
       [pageIndex]="pageIndex"
       [pageSize]="pageSize"
@@ -118,4 +123,28 @@
       (page)="onPage($event)"
     ></mat-paginator>
   </mat-card>
+
+  <mat-menu #rowMenu="matMenu" xPosition="before">
+    <ng-template matMenuContent let-customer>
+      <a mat-menu-item class="edit-item" [routerLink]="[customer.id, 'edit']">
+        <mat-icon>edit</mat-icon><span>Modifier</span>
+      </a>
+      <ng-container *ngIf="canManage">
+        <button
+          *ngIf="customer.status === 'ACTIVE'; else reactivateItem"
+          mat-menu-item
+          type="button"
+          class="danger deactivate-button"
+          (click)="deactivate(customer)"
+        >
+          <mat-icon>block</mat-icon><span>Désactiver</span>
+        </button>
+        <ng-template #reactivateItem>
+          <button mat-menu-item type="button" class="reactivate-button" (click)="reactivate(customer)">
+            <mat-icon>check_circle</mat-icon><span>Réactiver</span>
+          </button>
+        </ng-template>
+      </ng-container>
+    </ng-template>
+  </mat-menu>
 </div>

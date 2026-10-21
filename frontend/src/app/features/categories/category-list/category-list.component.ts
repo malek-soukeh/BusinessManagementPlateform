@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subscription, debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
+import { Subscription, debounceTime, filter, map, switchMap } from 'rxjs';
 
 import { CategoryNode, buildCategoryTree } from '../../../core/models/category.models';
 import { CategoryService } from '../../../core/services/category.service';
@@ -55,9 +55,14 @@ export class CategoryListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.add(
       this.search.valueChanges
-        .pipe(debounceTime(300), distinctUntilChanged())
+        .pipe(
+          debounceTime(300),
+          map(query => query.trim()),
+          // Compared with the current query, not with the previous keystroke: a reset changes the query.
+          filter(query => query !== this.query)
+        )
         .subscribe(query => {
-          this.query = query.trim();
+          this.query = query;
           this.pageIndex = 0;
           this.applyFilters();
         })
@@ -83,6 +88,23 @@ export class CategoryListComponent implements OnInit, OnDestroy {
         this.errorMessage = extractErrorMessage(error, 'Impossible de charger les catégories.');
       }
     });
+  }
+
+  get hasFilters(): boolean {
+    return this.search.value.trim() !== '' || this.level !== '';
+  }
+
+  levelLabel(level: CategoryLevel): string {
+    return level === 'root' ? 'Principales' : level === 'sub' ? 'Sous-catégories' : 'Toutes';
+  }
+
+  resetFilters(): void {
+    // Without event: the debounced search would filter a second time.
+    this.search.setValue('', { emitEvent: false });
+    this.query = '';
+    this.level = '';
+    this.pageIndex = 0;
+    this.applyFilters();
   }
 
   onLevelChange(level: CategoryLevel): void {

@@ -15,6 +15,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { clickRowMenuItem, openRowMenu } from '../../../testing/menu.helpers';
 import { ProductListComponent } from './product-list.component';
 
 describe('ProductListComponent', () => {
@@ -125,7 +126,8 @@ describe('ProductListComponent', () => {
 
     expect(categories.list).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('Nouveau produit');
-    expect(fixture.nativeElement.querySelectorAll('.deactivate-button').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.row-menu-button').length).toBe(2);
+    expect(openRowMenu(fixture, 0).querySelector('.deactivate-button')).not.toBeNull();
   });
 
   it('keeps an employee to reading, without the categories he may not read', () => {
@@ -133,7 +135,7 @@ describe('ProductListComponent', () => {
 
     expect(categories.list).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('Nouveau produit');
-    expect(fixture.nativeElement.querySelector('.deactivate-button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.row-menu-button')).toBeNull();
     expect(fixture.nativeElement.querySelector('a[href$="/edit"]')).toBeNull();
     expect(rows(fixture).length).toBe(2);
   });
@@ -143,7 +145,7 @@ describe('ProductListComponent', () => {
     service.deactivate.and.returnValue(of(undefined));
     const fixture = create();
 
-    (fixture.nativeElement.querySelector('.deactivate-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 0, 'deactivate-button');
 
     expect(service.deactivate).toHaveBeenCalledWith(1);
     expect(service.list).toHaveBeenCalledTimes(2);
@@ -155,7 +157,7 @@ describe('ProductListComponent', () => {
     service.update.and.returnValue(of(product(3)));
     const fixture = create();
 
-    (fixture.nativeElement.querySelector('.reactivate-button') as HTMLButtonElement).click();
+    clickRowMenuItem(fixture, 0, 'reactivate-button');
 
     expect(service.update).toHaveBeenCalledWith(3, jasmine.objectContaining({ status: 'ACTIVE', version: 4 }));
   });
@@ -179,6 +181,24 @@ describe('ProductListComponent', () => {
     service.list.and.returnValue(of(page([])));
     const fixture = create();
 
-    expect(fixture.nativeElement.querySelector('.empty').textContent).toContain('Aucun produit trouvé.');
+    expect(fixture.nativeElement.querySelector('app-empty-state').textContent).toContain('Aucun produit trouvé');
+  });
+
+  it('shows the active filters as chips and resets them all', () => {
+    const fixture = create('MANAGER', { lowStock: 'true' });
+
+    fixture.componentInstance.onCategoryChange(1);
+    fixture.detectChanges();
+
+    const chips = Array.from<Element>(fixture.nativeElement.querySelectorAll('.filter-chip'))
+      .map(chip => chip.textContent?.replace('close', '').trim());
+    expect(chips).toEqual(['Catégorie : Informatique', 'Stock bas']);
+
+    (fixture.nativeElement.querySelector('.reset-filters') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(service.list.calls.mostRecent().args[0]).toEqual(
+      { q: '', categoryId: null, status: 'ACTIVE', lowStock: false, page: 0, size: 10 });
+    expect(fixture.nativeElement.querySelector('.active-filters')).toBeNull();
   });
 });

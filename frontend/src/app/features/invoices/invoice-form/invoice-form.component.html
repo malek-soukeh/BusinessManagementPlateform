@@ -1,10 +1,9 @@
-<div class="page">
-  <div class="header">
-    <a mat-icon-button routerLink="/invoices" aria-label="Retour aux factures">
-      <mat-icon>arrow_back</mat-icon>
-    </a>
-    <h1>Nouvelle facture</h1>
-  </div>
+<div class="page narrow">
+  <app-page-header
+    title="Nouvelle facture"
+    subtitle="Facturez une commande confirmée, expédiée ou livrée."
+    [breadcrumbs]="[{ label: 'Ventes' }, { label: 'Factures', link: '/invoices' }, { label: 'Nouvelle' }]"
+  ></app-page-header>
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <mat-card class="section">

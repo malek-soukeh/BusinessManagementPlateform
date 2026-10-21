@@ -9,6 +9,7 @@ import { of, throwError } from 'rxjs';
 import { Category } from '../../../core/models/category.models';
 import { CategoryService } from '../../../core/services/category.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { openRowMenu } from '../../../testing/menu.helpers';
 import { CategoryListComponent } from './category-list.component';
 
 describe('CategoryListComponent', () => {
@@ -45,8 +46,9 @@ describe('CategoryListComponent', () => {
     Array.from<Element>(fixture.nativeElement.querySelectorAll('.category-name'))
       .map(element => element.textContent?.trim());
 
-  const deleteButtons = (fixture: ComponentFixture<CategoryListComponent>) =>
-    fixture.nativeElement.querySelectorAll('.delete-button') as NodeListOf<HTMLButtonElement>;
+  /** The "delete" item of the actions menu of a row. */
+  const deleteButton = (fixture: ComponentFixture<CategoryListComponent>, row: number) =>
+    openRowMenu(fixture, row).querySelector('.delete-button') as HTMLButtonElement;
 
   beforeEach(() => {
     service = jasmine.createSpyObj<CategoryService>('CategoryService', ['list', 'get', 'create', 'update', 'delete']);
@@ -114,10 +116,9 @@ describe('CategoryListComponent', () => {
   it('does not offer to delete a category that has sub-categories', () => {
     const fixture = create();
 
-    const buttons = deleteButtons(fixture);
-    expect(buttons[0].disabled).toBeFalse();
-    expect(buttons[1].disabled).toBeTrue();
-    expect(buttons[2].disabled).toBeFalse();
+    expect(deleteButton(fixture, 0).disabled).toBeFalse();
+    expect(deleteButton(fixture, 1).disabled).toBeTrue();
+    expect(deleteButton(fixture, 2).disabled).toBeFalse();
   });
 
   it('deletes after confirmation and reloads', () => {
@@ -125,7 +126,7 @@ describe('CategoryListComponent', () => {
     service.delete.and.returnValue(of(undefined));
     const fixture = create();
 
-    deleteButtons(fixture)[0].click();
+    deleteButton(fixture, 0).click();
 
     expect(dialog.open).toHaveBeenCalled();
     expect(service.delete).toHaveBeenCalledWith(3);
@@ -137,7 +138,7 @@ describe('CategoryListComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(false) });
     const fixture = create();
 
-    deleteButtons(fixture)[0].click();
+    deleteButton(fixture, 0).click();
 
     expect(service.delete).not.toHaveBeenCalled();
   });
@@ -149,7 +150,7 @@ describe('CategoryListComponent', () => {
     })));
     const fixture = create();
 
-    deleteButtons(fixture)[0].click();
+    deleteButton(fixture, 0).click();
 
     expect(snackBar.open).toHaveBeenCalledWith(
       'Cette catégorie est utilisée par des produits : elle ne peut pas être supprimée.', 'OK', jasmine.anything());
@@ -172,6 +173,6 @@ describe('CategoryListComponent', () => {
     service.list.and.returnValue(of([]));
     const fixture = create();
 
-    expect(fixture.nativeElement.querySelector('.empty').textContent).toContain('Aucune catégorie pour le moment.');
+    expect(fixture.nativeElement.querySelector('app-empty-state').textContent).toContain('Aucune catégorie pour le moment.');
   });
 });

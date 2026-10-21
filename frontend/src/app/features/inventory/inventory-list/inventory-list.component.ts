@@ -5,7 +5,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import {
-  BehaviorSubject, Subscription, catchError, debounceTime, distinctUntilChanged, filter, map, of, switchMap, tap
+  BehaviorSubject, Subscription, catchError, debounceTime, filter, map, of, switchMap, tap
 } from 'rxjs';
 
 import { Page } from '../../../core/models/page.models';
@@ -60,7 +60,12 @@ export class InventoryListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.add(
       this.search.valueChanges
-        .pipe(debounceTime(300), distinctUntilChanged())
+        .pipe(
+          debounceTime(300),
+          map(q => q.trim()),
+          // Compared with the current query, not with the previous keystroke: a reset changes the query.
+          filter(q => q !== this.query$.value.q)
+        )
         .subscribe(q => this.patchQuery({ q, page: 0 }))
     );
 
@@ -93,6 +98,16 @@ export class InventoryListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+  }
+
+  get hasFilters(): boolean {
+    return this.search.value.trim() !== '' || this.query.lowStock;
+  }
+
+  resetFilters(): void {
+    // Without event: the debounced search would send a second request.
+    this.search.setValue('', { emitEvent: false });
+    this.patchQuery({ q: '', lowStock: false, page: 0 });
   }
 
   onLowStockChange(lowStock: boolean): void {
