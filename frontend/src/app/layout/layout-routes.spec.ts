@@ -39,6 +39,12 @@ describe('layout routes', () => {
     expect(String(result)).toBe('/dashboard');
   });
 
+  it('opens the users to an administrator only', () => {
+    expect(open('users', 'ADMIN')).toEqual([true]);
+    expect(String(open('users', 'MANAGER')[0])).toBe('/dashboard');
+    expect(String(open('users', 'EMPLOYEE')[0])).toBe('/dashboard');
+  });
+
   it('opens the dashboard and the customers to every role', () => {
     expect(child('dashboard').canActivate).toBeUndefined();
     expect(child('customers').canActivate).toBeUndefined();

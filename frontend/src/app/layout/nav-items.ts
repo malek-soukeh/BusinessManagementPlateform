@@ -21,7 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Stock', icon: 'storage', route: '/inventory', roles: EVERYONE },
   { label: 'Commandes', icon: 'shopping_cart', route: '/orders', roles: EVERYONE },
   { label: 'Factures', icon: 'receipt_long', route: '/invoices', roles: EVERYONE },
-  { label: 'Utilisateurs', icon: 'manage_accounts', route: '/users', roles: ['ADMIN'], comingSoon: true }
+  { label: 'Utilisateurs', icon: 'manage_accounts', route: '/users', roles: ['ADMIN'] }
 ];
 
 /** The menu entries a role is allowed to see. Nobody logged in sees nothing. */
