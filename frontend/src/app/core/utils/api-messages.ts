@@ -18,6 +18,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 const status = (value: string) => STATUS_LABELS[value] ?? value;
 
+/** The API writes amounts the English way (1234.500): they are shown the French way (1 234,500). */
+const money = (value: string) => {
+  const amount = Number(value);
+  return Number.isFinite(amount)
+    ? amount.toLocaleString('fr-FR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+    : value;
+};
+
 type Translation = [RegExp, (...groups: string[]) => string];
 
 const TRANSLATIONS: Translation[] = [
@@ -67,14 +75,14 @@ const TRANSLATIONS: Translation[] = [
   [/^Cannot invoice an order with status (\w+)/,
     current => `Une commande ${status(current)} ne peut pas être facturée : elle doit être confirmée, expédiée ou livrée.`],
   [/^Order already invoiced: (.+)$/, order => `La commande ${order} est déjà facturée.`],
-  [/^Discount cannot exceed the order total: (.+)$/, total => `La remise ne peut pas dépasser le total de la commande (${total} TND).`],
+  [/^Discount cannot exceed the order total: (.+)$/, total => `La remise ne peut pas dépasser le total de la commande (${money(total)} TND).`],
   [/^Due date cannot be before the issue date/, () => 'L\'échéance ne peut pas précéder la date d\'émission.'],
   [/^Cannot cancel an invoice with status (\w+)$/, current => `Une facture ${status(current)} ne peut pas être annulée.`],
   [/^Cannot cancel an invoice that already has payments/, () => 'Une facture qui a déjà reçu des paiements ne peut pas être annulée.'],
   [/^Cannot register a payment on an invoice with status (\w+)$/,
     current => `Impossible d'enregistrer un paiement sur une facture ${status(current)}.`],
   [/^Payment exceeds the remaining balance: (.+) left on invoice (.+)$/,
-    (left, invoice) => `Le paiement dépasse le reste à payer de la facture ${invoice} (${left} TND).`],
+    (left, invoice) => `Le paiement dépasse le reste à payer de la facture ${invoice} (${money(left)} TND).`],
 
   // Users
   [/^You cannot change your own email$/, () => 'Vous ne pouvez pas modifier votre propre email.'],

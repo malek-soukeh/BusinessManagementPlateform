@@ -59,3 +59,19 @@
 @media print {
   .print-title { display: block; margin: 0 0 16px; font-size: 22px; }
 }
+
+.payments { margin-top: 16px; }
+
+.balance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 12px 0;
+
+  div { display: flex; flex-direction: column; }
+  .paid { color: var(--app-success); }
+}
+
+.balance-bar { flex: 1 1 100%; }
+.method-icon { font-size: 18px; width: 18px; height: 18px; vertical-align: middle; }
+.error-line { display: flex; align-items: center; gap: 8px; color: var(--app-danger); }

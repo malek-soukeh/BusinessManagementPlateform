@@ -6,6 +6,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { InvoiceDetailComponent } from './invoice-detail/invoice-detail.component';
 import { InvoiceFormComponent } from './invoice-form/invoice-form.component';
 import { InvoiceListComponent } from './invoice-list/invoice-list.component';
+import { PaymentDialogComponent } from './payment-dialog/payment-dialog.component';
 
 /** Every role reads the invoices; only ADMIN and MANAGER create them, as the API decides. */
 export const invoiceRoutes: Routes = [
@@ -15,7 +16,7 @@ export const invoiceRoutes: Routes = [
 ];
 
 @NgModule({
-  declarations: [InvoiceListComponent, InvoiceDetailComponent, InvoiceFormComponent],
+  declarations: [InvoiceListComponent, InvoiceDetailComponent, InvoiceFormComponent, PaymentDialogComponent],
   imports: [SharedModule, RouterModule.forChild(invoiceRoutes)]
 })
 export class InvoicesModule {}

@@ -12,8 +12,10 @@ import { of, throwError } from 'rxjs';
 
 import { Role } from '../../../core/models/auth.models';
 import { Invoice } from '../../../core/models/invoice.models';
+import { Payment } from '../../../core/models/payment.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { InvoiceService } from '../../../core/services/invoice.service';
+import { PaymentService } from '../../../core/services/payment.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { InvoiceDetailComponent } from './invoice-detail.component';
 
@@ -30,6 +32,7 @@ describe('InvoiceDetailComponent', () => {
   });
 
   let service: jasmine.SpyObj<InvoiceService>;
+  let payments: jasmine.SpyObj<PaymentService>;
   let dialog: { open: jasmine.Spy };
   let snackBar: { open: jasmine.Spy };
 
@@ -39,6 +42,7 @@ describe('InvoiceDetailComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: InvoiceService, useValue: service },
+        { provide: PaymentService, useValue: payments },
         { provide: AuthService, useValue: { hasAnyRole: (roles: Role[]) => roles.includes(role) } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id }) } } },
         { provide: MatDialog, useValue: dialog },
@@ -57,6 +61,8 @@ describe('InvoiceDetailComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj<InvoiceService>('InvoiceService', ['list', 'get', 'create', 'cancel', 'findByOrder']);
     service.get.and.returnValue(of(invoice()));
+    payments = jasmine.createSpyObj<PaymentService>('PaymentService', ['list', 'record']);
+    payments.list.and.returnValue(of([]));
     dialog = { open: jasmine.createSpy('open').and.returnValue({ afterClosed: () => of(true) }) };
     snackBar = { open: jasmine.createSpy('open') };
   });
@@ -151,5 +157,83 @@ describe('InvoiceDetailComponent', () => {
     const fixture = create('EMPLOYEE');
 
     expect(fixture.nativeElement.querySelector('.error-panel').textContent).toContain('Facture introuvable.');
+  });
+
+  describe('payments', () => {
+    const payment = (id: number, amount: number): Payment => ({
+      id, invoiceId: 4, invoiceNumber: 'INV-2026-00004', amount, method: 'BANK_TRANSFER',
+      paymentDate: '2026-10-10T10:00:00Z', createdBy: 'manager@techdistrib.tn', createdAt: '2026-10-10T10:00:00Z'
+    });
+
+    const amounts = (fixture: ComponentFixture<InvoiceDetailComponent>) => ({
+      paid: (fixture.nativeElement.querySelector('.paid').textContent as string).replace(/\s/g, ' ').trim(),
+      remaining: (fixture.nativeElement.querySelector('.remaining').textContent as string).replace(/\s/g, ' ').trim()
+    });
+
+    it('lists the payments with what is paid and what is left', () => {
+      payments.list.and.returnValue(of([payment(2, 300), payment(1, 200.5)]));
+      service.get.and.returnValue(of(invoice({ paymentStatus: 'PARTIALLY_PAID' })));
+      const fixture = create();
+
+      expect(payments.list).toHaveBeenCalledWith(4);
+      expect(fixture.nativeElement.querySelectorAll('.payments .compact-row').length).toBe(2);
+      expect(fixture.nativeElement.querySelector('.payments').textContent).toContain('Virement');
+      expect(amounts(fixture)).toEqual({ paid: '500,500 TND', remaining: '570,500 TND' });
+    });
+
+    it('says when no payment was received', () => {
+      const fixture = create();
+
+      expect(fixture.nativeElement.querySelector('.payments .empty').textContent).toContain('Aucun paiement');
+      expect(amounts(fixture)).toEqual({ paid: '0,000 TND', remaining: '1 071,000 TND' });
+    });
+
+    it('lets a manager record a payment on an issued invoice, then reloads', () => {
+      dialog.open.and.returnValue({ afterClosed: () => of(payment(3, 1071)) });
+      const fixture = create('MANAGER');
+
+      (fixture.nativeElement.querySelector('#pay-button') as HTMLButtonElement).click();
+
+      expect(dialog.open.calls.mostRecent().args[1].data.remaining).toBe(1071);
+      expect(snackBar.open.calls.mostRecent().args[0].replace(/\s/g, ' ')).toBe('Paiement de 1 071,000 TND enregistré.');
+      expect(service.get).toHaveBeenCalledTimes(2);
+      expect(payments.list).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not reload when the payment is cancelled', () => {
+      dialog.open.and.returnValue({ afterClosed: () => of(undefined) });
+      const fixture = create('MANAGER');
+
+      (fixture.nativeElement.querySelector('#pay-button') as HTMLButtonElement).click();
+
+      expect(payments.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('offers no payment on a paid or cancelled invoice, nor to an employee', () => {
+      service.get.and.returnValue(of(invoice({ status: 'PAID', paymentStatus: 'PAID' })));
+      payments.list.and.returnValue(of([payment(1, 1071)]));
+      expect(create('MANAGER').nativeElement.querySelector('#pay-button')).toBeNull();
+
+      TestBed.resetTestingModule();
+      service.get.and.returnValue(of(invoice({ status: 'CANCELLED' })));
+      payments.list.and.returnValue(of([]));
+      expect(create('MANAGER').nativeElement.querySelector('#pay-button')).toBeNull();
+
+      TestBed.resetTestingModule();
+      service.get.and.returnValue(of(invoice()));
+      expect(create('EMPLOYEE').nativeElement.querySelector('#pay-button')).toBeNull();
+    });
+
+    it('shows the error of the payments and reloads them on demand', () => {
+      payments.list.and.returnValues(throwError(() => new HttpErrorResponse({ status: 0 })), of([payment(1, 100)]));
+      const fixture = create();
+
+      expect(fixture.nativeElement.querySelector('.payments .error-line').textContent).toContain('Serveur injoignable');
+
+      (fixture.nativeElement.querySelector('.payments .error-line button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelectorAll('.payments .compact-row').length).toBe(1);
+    });
   });
 });

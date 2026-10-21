@@ -14,6 +14,17 @@
       Imprimer
     </button>
     <button
+      id="pay-button"
+      mat-flat-button
+      color="primary"
+      type="button"
+      *ngIf="canPay"
+      (click)="recordPayment()"
+    >
+      <mat-icon>add_card</mat-icon>
+      Enregistrer un paiement
+    </button>
+    <button
       id="cancel-button"
       mat-stroked-button
       color="warn"
@@ -112,5 +123,47 @@
         <div class="grand-total"><dt>Total TTC</dt><dd>{{ invoice.totalAmount | number: '1.3-3' }} TND</dd></div>
       </dl>
     </mat-card>
+
+    <section class="panel payments" aria-label="Paiements">
+      <div class="panel-head">
+        <h2 class="panel-title">Paiements</h2>
+        <span class="muted" *ngIf="!paymentsLoading">{{ payments.length }} paiement(s)</span>
+      </div>
+
+      <div class="balance" *ngIf="!paymentsLoading && !paymentsError">
+        <div><span class="info-label">Payé</span><strong class="paid">{{ paid | number: '1.3-3' }} TND</strong></div>
+        <div><span class="info-label">Reste à payer</span><strong class="remaining">{{ remaining | number: '1.3-3' }} TND</strong></div>
+        <mat-progress-bar
+          class="balance-bar"
+          mode="determinate"
+          [value]="paidRate"
+          [attr.aria-label]="'Facture payée à ' + (paidRate | number: '1.0-0') + ' %'"
+        ></mat-progress-bar>
+      </div>
+
+      <app-skeleton *ngIf="paymentsLoading" height="40px"></app-skeleton>
+
+      <div class="error-line" role="alert" *ngIf="paymentsError">
+        <span>{{ paymentsError }}</span>
+        <button mat-button color="primary" type="button" (click)="loadPayments()">Réessayer</button>
+      </div>
+
+      <ul class="compact-list" *ngIf="payments.length">
+        <li class="compact-row" *ngFor="let payment of payments">
+          <div class="compact-main">
+            <span class="compact-title">
+              <mat-icon class="method-icon" aria-hidden="true">{{ methodIcon(payment.method) }}</mat-icon>
+              {{ methodLabel(payment.method) }}
+            </span>
+            <span class="compact-sub">{{ payment.paymentDate | date: 'dd/MM/yyyy' }} · {{ payment.createdBy }}</span>
+          </div>
+          <span class="compact-amount">{{ payment.amount | number: '1.3-3' }} TND</span>
+        </li>
+      </ul>
+
+      <p class="empty" *ngIf="!paymentsLoading && !paymentsError && !payments.length">
+        Aucun paiement reçu pour cette facture.
+      </p>
+    </section>
   </ng-container>
 </div>

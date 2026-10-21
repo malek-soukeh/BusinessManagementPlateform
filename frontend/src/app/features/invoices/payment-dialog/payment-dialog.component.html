@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>Enregistrer un paiement</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <p class="summary">
+      Facture <strong>{{ data.invoice.invoiceNumber }}</strong><br />
+      Reste à payer : <strong>{{ data.remaining | number: '1.3-3' }} TND</strong>
+      sur {{ data.invoice.totalAmount | number: '1.3-3' }} TND
+    </p>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Montant</mat-label>
+      <input matInput type="number" min="0" step="0.001" formControlName="amount" cdkFocusInitial />
+      <span matTextSuffix>TND</span>
+      <button mat-button matSuffix type="button" class="pay-all" (click)="payAll()">Tout régler</button>
+      <mat-error *ngIf="form.controls.amount.hasError('required')">Le montant est obligatoire.</mat-error>
+      <mat-error *ngIf="form.controls.amount.hasError('min')">Le montant doit être supérieur à 0.</mat-error>
+      <mat-error *ngIf="form.controls.amount.hasError('maxDecimals')">3 décimales maximum.</mat-error>
+      <mat-error *ngIf="form.controls.amount.hasError('tooHigh')">
+        Le montant dépasse le reste à payer ({{ data.remaining | number: '1.3-3' }} TND).
+      </mat-error>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline">
+        <mat-label>Mode de paiement</mat-label>
+        <mat-select formControlName="method">
+          <mat-option *ngFor="let method of methods" [value]="method">
+            <mat-icon>{{ methodIcon(method) }}</mat-icon>
+            {{ methodLabel(method) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Date du paiement</mat-label>
+        <input matInput type="date" [max]="today" formControlName="paymentDate" />
+        <mat-error *ngIf="form.controls.paymentDate.hasError('required')">La date est obligatoire.</mat-error>
+        <mat-error *ngIf="form.controls.paymentDate.hasError('future')">La date ne peut pas être future.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <p class="preview" aria-live="polite" *ngIf="form.controls.amount.valid">
+      <ng-container *ngIf="remainingAfter === 0; else partial">
+        <mat-icon aria-hidden="true">task_alt</mat-icon> La facture sera entièrement payée.
+      </ng-container>
+      <ng-template #partial>
+        Reste après ce paiement : <strong>{{ remainingAfter | number: '1.3-3' }} TND</strong>
+      </ng-template>
+    </p>
+
+    <p class="form-error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Annuler</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="saving">
+      <mat-spinner *ngIf="saving" diameter="18"></mat-spinner>
+      Enregistrer
+    </button>
+  </mat-dialog-actions>
+</form>
