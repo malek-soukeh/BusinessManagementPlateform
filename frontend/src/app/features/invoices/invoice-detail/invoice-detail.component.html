@@ -1,0 +1,116 @@
+<div class="page">
+  <div class="header no-print">
+    <a mat-icon-button routerLink="/invoices" aria-label="Retour aux factures">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>{{ invoice?.invoiceNumber ?? 'Facture' }}</h1>
+    <ng-container *ngIf="invoice">
+      <span class="status-chip" [ngClass]="statusTone(invoice.status)">{{ statusLabel(invoice.status) }}</span>
+      <span class="status-chip" [ngClass]="paymentTone(invoice.paymentStatus)">{{ paymentLabel(invoice.paymentStatus) }}</span>
+    </ng-container>
+    <span class="spacer"></span>
+    <button mat-stroked-button type="button" *ngIf="invoice" (click)="print()">
+      <mat-icon>print</mat-icon>
+      Imprimer
+    </button>
+    <button
+      id="cancel-button"
+      mat-stroked-button
+      color="warn"
+      type="button"
+      *ngIf="canCancel"
+      [disabled]="busy"
+      (click)="cancel()"
+    >
+      <mat-icon>cancel</mat-icon>
+      Annuler la facture
+    </button>
+  </div>
+
+  <div class="panel loading" *ngIf="loading" aria-busy="true" aria-label="Chargement de la facture">
+    <app-skeleton width="40%" height="20px"></app-skeleton>
+    <app-skeleton height="60px"></app-skeleton>
+    <app-skeleton height="160px"></app-skeleton>
+  </div>
+
+  <div class="panel error-panel" role="alert" *ngIf="loadError">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span class="error-message">{{ loadError }}</span>
+    <button mat-button color="primary" type="button" *ngIf="loadError !== 'Facture introuvable.'" (click)="load()">
+      Réessayer
+    </button>
+    <a mat-button color="primary" routerLink="/invoices">Retour aux factures</a>
+  </div>
+
+  <p class="action-error no-print" role="alert" *ngIf="actionError">{{ actionError }}</p>
+
+  <ng-container *ngIf="invoice && !loading">
+    <h1 class="print-title">Facture {{ invoice.invoiceNumber }}</h1>
+
+    <div class="panel overdue no-print" role="status" *ngIf="delay > 0">
+      <mat-icon aria-hidden="true">schedule</mat-icon>
+      Échéance dépassée de {{ delay }} jour{{ delay > 1 ? 's' : '' }}.
+    </div>
+
+    <section class="info">
+      <div class="panel info-item">
+        <span class="info-label">Client</span>
+        <span class="info-value">{{ invoice.customerName }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Commande</span>
+        <a class="info-value order-link" [routerLink]="['/orders', invoice.orderId]">{{ invoice.orderNumber }}</a>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Émise le</span>
+        <span class="info-value">{{ invoice.issueDate | date: 'dd/MM/yyyy' }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Échéance</span>
+        <span class="info-value" [class.late]="delay > 0">{{ invoice.dueDate | date: 'dd/MM/yyyy' }}</span>
+      </div>
+    </section>
+
+    <mat-card class="lines">
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="invoice.items" class="lines-table">
+          <ng-container matColumnDef="product">
+            <th mat-header-cell *matHeaderCellDef>Produit</th>
+            <td mat-cell *matCellDef="let item">
+              <div class="product-name">{{ item.productName }}</div>
+              <div class="muted">{{ item.productReference }}</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef class="number">Qté</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.quantity | number }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="unitPrice">
+            <th mat-header-cell *matHeaderCellDef class="number">Prix unitaire HT</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.unitPrice | number: '1.3-3' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="subtotal">
+            <th mat-header-cell *matHeaderCellDef class="number">Montant HT</th>
+            <td mat-cell *matCellDef="let item" class="number">{{ item.subtotal | number: '1.3-3' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+
+      <dl class="totals">
+        <div><dt>Sous-total HT</dt><dd>{{ invoice.subtotal | number: '1.3-3' }} TND</dd></div>
+        <div *ngIf="invoice.discount > 0"><dt>Remise</dt><dd>− {{ invoice.discount | number: '1.3-3' }} TND</dd></div>
+        <div>
+          <dt>TVA<span *ngIf="taxRate !== null"> ({{ taxRate | number: '1.0-1' }} %)</span></dt>
+          <dd>{{ invoice.taxAmount | number: '1.3-3' }} TND</dd>
+        </div>
+        <div class="grand-total"><dt>Total TTC</dt><dd>{{ invoice.totalAmount | number: '1.3-3' }} TND</dd></div>
+      </dl>
+    </mat-card>
+  </ng-container>
+</div>

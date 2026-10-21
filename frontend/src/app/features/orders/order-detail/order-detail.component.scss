@@ -91,3 +91,7 @@
 @media (max-width: 480px) {
   .step-label { font-size: 11px; }
 }
+
+.billing { margin-bottom: 16px; }
+.billing-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.invoice-link { font-weight: 500; color: var(--app-primary); text-decoration: none; }

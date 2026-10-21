@@ -1,0 +1,120 @@
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>Factures</h1>
+      <p class="subtitle" *ngIf="!errorMessage && !loading">{{ total }} facture(s)</p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="new" *ngIf="canCreate">
+      <mat-icon>receipt_long</mat-icon>
+      Nouvelle facture
+    </a>
+  </div>
+
+  <mat-card class="filters">
+    <mat-form-field appearance="outline" class="search">
+      <mat-label>Rechercher</mat-label>
+      <input matInput [formControl]="search" placeholder="N° de facture ou de commande" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="select-filter">
+      <mat-label>Statut</mat-label>
+      <mat-select [value]="query.status" (selectionChange)="onStatusChange($event.value)">
+        <mat-option value="">Tous</mat-option>
+        <mat-option *ngFor="let status of statuses" [value]="status">{{ statusLabel(status) }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="select-filter">
+      <mat-label>Paiement</mat-label>
+      <mat-select [value]="query.paymentStatus" (selectionChange)="onPaymentStatusChange($event.value)">
+        <mat-option value="">Tous</mat-option>
+        <mat-option *ngFor="let status of paymentStatuses" [value]="status">{{ paymentLabel(status) }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </mat-card>
+
+  <mat-card class="table-card">
+    <mat-progress-bar mode="indeterminate" *ngIf="loading && rows.length"></mat-progress-bar>
+
+    <div class="error-panel" role="alert" *ngIf="errorMessage">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span class="error-message">{{ errorMessage }}</span>
+      <button mat-button color="primary" type="button" (click)="reload()">Réessayer</button>
+    </div>
+
+    <div class="skeleton-rows" *ngIf="loading && !rows.length" aria-busy="true" aria-label="Chargement des factures">
+      <div class="skeleton-row" *ngFor="let row of skeletonRows">
+        <app-skeleton width="25%" height="14px"></app-skeleton>
+        <app-skeleton width="40%" height="12px"></app-skeleton>
+      </div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!errorMessage && !(loading && !rows.length)">
+      <table mat-table [dataSource]="rows" class="invoices-table">
+        <ng-container matColumnDef="number">
+          <th mat-header-cell *matHeaderCellDef>N° facture</th>
+          <td mat-cell *matCellDef="let invoice">
+            <a class="link" [routerLink]="[invoice.id]">{{ invoice.invoiceNumber }}</a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="customer">
+          <th mat-header-cell *matHeaderCellDef>Client</th>
+          <td mat-cell *matCellDef="let invoice">{{ invoice.customerName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="order">
+          <th mat-header-cell *matHeaderCellDef class="hide-md">Commande</th>
+          <td mat-cell *matCellDef="let invoice" class="hide-md muted nowrap">{{ invoice.orderNumber }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="dueDate">
+          <th mat-header-cell *matHeaderCellDef class="hide-sm">Échéance</th>
+          <td mat-cell *matCellDef="let invoice" class="hide-sm nowrap">
+            {{ invoice.dueDate | date: 'dd/MM/yyyy' }}
+            <div class="late" *ngIf="delay(invoice) > 0">{{ delay(invoice) }} j de retard</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="number">Total TTC</th>
+          <td mat-cell *matCellDef="let invoice" class="number">{{ invoice.totalAmount | number: '1.3-3' }} TND</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let invoice">
+            <span class="status-chip" [ngClass]="statusTone(invoice.status)">{{ statusLabel(invoice.status) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="payment">
+          <th mat-header-cell *matHeaderCellDef class="hide-sm">Paiement</th>
+          <td mat-cell *matCellDef="let invoice" class="hide-sm">
+            <span class="status-chip" [ngClass]="paymentTone(invoice.paymentStatus)">
+              {{ paymentLabel(invoice.paymentStatus) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty" [attr.colspan]="columns.length">Aucune facture trouvée.</td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      *ngIf="!errorMessage"
+      [length]="total"
+      [pageIndex]="query.page"
+      [pageSize]="query.size"
+      [pageSizeOptions]="[10, 20, 50]"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

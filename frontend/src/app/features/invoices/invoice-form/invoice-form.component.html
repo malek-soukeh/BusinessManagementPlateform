@@ -1,0 +1,101 @@
+<div class="page">
+  <div class="header">
+    <a mat-icon-button routerLink="/invoices" aria-label="Retour aux factures">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>Nouvelle facture</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <mat-card class="section">
+      <h2 class="panel-title">Commande à facturer</h2>
+
+      <app-skeleton *ngIf="loadingOrder" height="52px"></app-skeleton>
+
+      <mat-form-field appearance="outline" class="full" [hidden]="loadingOrder">
+        <mat-label>Commande</mat-label>
+        <input
+          matInput
+          formControlName="order"
+          [matAutocomplete]="orderAuto"
+          placeholder="Numéro de commande (ORD-…)"
+          autocomplete="off"
+        />
+        <mat-icon matSuffix>search</mat-icon>
+        <mat-autocomplete #orderAuto="matAutocomplete" [displayWith]="displayOrder">
+          <mat-option *ngFor="let option of orderOptions" [value]="option" [disabled]="!isInvoiceable(option)">
+            <span class="option-name">{{ option.orderNumber }}</span>
+            <span class="option-detail">
+              · {{ option.customerName }} · {{ option.totalAmount | number: '1.3-3' }} TND HT · {{ statusLabel(option.status) }}
+            </span>
+          </mat-option>
+        </mat-autocomplete>
+        <mat-hint>Seules les commandes confirmées, expédiées ou livrées peuvent être facturées.</mat-hint>
+        <mat-error *ngIf="form.controls.order.hasError('required')">La commande est obligatoire.</mat-error>
+        <mat-error *ngIf="form.controls.order.hasError('notPicked')">Choisissez une commande dans la liste.</mat-error>
+        <mat-error *ngIf="form.controls.order.hasError('notInvoiceable')">Cette commande ne peut pas être facturée.</mat-error>
+      </mat-form-field>
+
+      <ng-container *ngIf="order as o">
+        <p class="notice-line warn" role="alert" *ngIf="!isInvoiceable(o)">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          La commande {{ o.orderNumber }} est {{ statusLabel(o.status).toLowerCase() }} :
+          elle doit être confirmée, expédiée ou livrée pour être facturée.
+        </p>
+        <p class="notice-line warn existing-invoice" role="alert" *ngIf="existingInvoice as invoice">
+          <mat-icon aria-hidden="true">receipt_long</mat-icon>
+          Cette commande est déjà facturée :
+          <a [routerLink]="['/invoices', invoice.id]">{{ invoice.invoiceNumber }}</a>.
+        </p>
+      </ng-container>
+    </mat-card>
+
+    <mat-card class="section">
+      <h2 class="panel-title">Conditions</h2>
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>Remise HT</mat-label>
+          <input matInput type="number" min="0" step="0.001" formControlName="discount" />
+          <span matTextSuffix>TND</span>
+          <mat-hint>Facultative.</mat-hint>
+          <mat-error *ngIf="form.controls.discount.hasError('min')">La remise ne peut pas être négative.</mat-error>
+          <mat-error *ngIf="form.controls.discount.hasError('maxDecimals')">3 décimales maximum.</mat-error>
+          <mat-error *ngIf="form.controls.discount.hasError('tooHigh')">
+            La remise dépasse le total de la commande.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Échéance</mat-label>
+          <input matInput type="date" [min]="today" formControlName="dueDate" />
+          <mat-hint>Par défaut : 30 jours après l'émission.</mat-hint>
+          <mat-error *ngIf="form.controls.dueDate.hasError('past')">L'échéance ne peut pas être passée.</mat-error>
+        </mat-form-field>
+      </div>
+      <p class="field-error" role="alert" *ngIf="form.hasError('discountTooHigh')">
+        La remise ne peut pas dépasser le total HT de la commande.
+      </p>
+    </mat-card>
+
+    <mat-card class="section" *ngIf="preview as p">
+      <h2 class="panel-title">Aperçu</h2>
+      <dl class="totals">
+        <div><dt>Total commande HT</dt><dd>{{ p.subtotal | number: '1.3-3' }} TND</dd></div>
+        <div *ngIf="p.discount > 0"><dt>Remise</dt><dd>− {{ p.discount | number: '1.3-3' }} TND</dd></div>
+        <div><dt>TVA estimée ({{ taxRate }} %)</dt><dd>{{ p.tax | number: '1.3-3' }} TND</dd></div>
+        <div class="grand-total"><dt>Total TTC estimé</dt><dd>{{ p.total | number: '1.3-3' }} TND</dd></div>
+      </dl>
+      <p class="hint">Le taux de TVA appliqué est celui configuré sur le serveur : la facture fait foi.</p>
+    </mat-card>
+
+    <p class="form-error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <div class="actions">
+      <a mat-button routerLink="/invoices">Annuler</a>
+      <button mat-flat-button color="primary" type="submit" [disabled]="!canSubmit">
+        <mat-spinner *ngIf="saving || checkingOrder" diameter="18"></mat-spinner>
+        Créer la facture
+      </button>
+    </div>
+  </form>
+</div>

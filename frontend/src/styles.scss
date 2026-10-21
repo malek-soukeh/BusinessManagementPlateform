@@ -266,6 +266,23 @@ a.compact-title:hover, a.compact-title:focus-visible { text-decoration: underlin
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Printing (invoices): only the page content, in light colors. */
+@media print {
+  .mat-drawer, .mat-toolbar, .no-print { display: none !important; }
+  .mat-drawer-content { margin-left: 0 !important; }
+  .mat-drawer-container, body { background: #fff !important; }
+
+  body.dark-theme {
+    --app-surface: #fff;
+    --app-text: #000;
+    --app-muted: #555;
+    --app-border: #ccc;
+    color: #000;
+  }
+
+  .mat-mdc-card, .panel { box-shadow: none !important; background: #fff !important; color: #000 !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

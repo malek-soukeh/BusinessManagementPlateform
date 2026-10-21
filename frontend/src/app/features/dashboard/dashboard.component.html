@@ -173,7 +173,9 @@
     <article class="panel list-panel" id="overdue-invoices">
       <div class="panel-head">
         <h2 class="panel-title">Factures en retard</h2>
-        <a mat-button color="primary" *ngIf="routes.invoices" [routerLink]="routes.invoices">Tout voir</a>
+        <a mat-button color="primary" *ngIf="routes.invoices" [routerLink]="routes.invoices" [queryParams]="{ status: 'OVERDUE' }">
+          Tout voir
+        </a>
       </div>
 
       <ng-container
@@ -184,7 +186,10 @@
       <ul class="compact-list" *ngIf="overdue.data?.length" @fadeIn>
         <li class="compact-row" *ngFor="let invoice of overdue.data; trackBy: trackById">
           <div class="compact-main">
-            <span class="compact-title">{{ invoice.invoiceNumber }}</span>
+            <a class="compact-title" *ngIf="routes.invoices; else invoiceNumber" [routerLink]="[routes.invoices, invoice.id]">
+              {{ invoice.invoiceNumber }}
+            </a>
+            <ng-template #invoiceNumber><span class="compact-title">{{ invoice.invoiceNumber }}</span></ng-template>
             <span class="compact-sub">{{ invoice.customerName }} · échue le {{ invoice.dueDate | date: 'dd/MM/yyyy' }}</span>
           </div>
           <div class="compact-side">

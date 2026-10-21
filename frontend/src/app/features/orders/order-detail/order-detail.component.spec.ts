@@ -12,7 +12,9 @@ import { of, throwError } from 'rxjs';
 
 import { Role } from '../../../core/models/auth.models';
 import { Order, OrderStatus } from '../../../core/models/order.models';
+import { InvoiceSummary } from '../../../core/models/invoice.models';
 import { AuthService } from '../../../core/services/auth.service';
+import { InvoiceService } from '../../../core/services/invoice.service';
 import { OrderService } from '../../../core/services/order.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { OrderDetailComponent } from './order-detail.component';
@@ -31,6 +33,7 @@ describe('OrderDetailComponent', () => {
   });
 
   let service: jasmine.SpyObj<OrderService>;
+  let invoices: jasmine.SpyObj<InvoiceService>;
   let dialog: { open: jasmine.Spy };
   let snackBar: { open: jasmine.Spy };
 
@@ -40,6 +43,7 @@ describe('OrderDetailComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: OrderService, useValue: service },
+        { provide: InvoiceService, useValue: invoices },
         { provide: AuthService, useValue: { hasAnyRole: (roles: Role[]) => roles.includes(role) } },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id }) } } },
         { provide: MatDialog, useValue: dialog },
@@ -64,6 +68,8 @@ describe('OrderDetailComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj<OrderService>('OrderService', ['list', 'get', 'create', 'update', 'changeStatus']);
     service.get.and.returnValue(of(order()));
+    invoices = jasmine.createSpyObj<InvoiceService>('InvoiceService', ['findByOrder']);
+    invoices.findByOrder.and.returnValue(of(null));
     dialog = { open: jasmine.createSpy('open').and.returnValue({ afterClosed: () => of(true) }) };
     snackBar = { open: jasmine.createSpy('open') };
   });
@@ -178,5 +184,44 @@ describe('OrderDetailComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.error-panel').textContent).toContain('Commande introuvable.');
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
+  });
+
+  it('does not look for an invoice while the order is pending', () => {
+    const fixture = create();
+
+    expect(invoices.findByOrder).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.billing')).toBeNull();
+  });
+
+  it('offers a manager to invoice a confirmed order without invoice', () => {
+    service.get.and.returnValue(of(order('CONFIRMED')));
+    const fixture = create('MANAGER');
+
+    expect(invoices.findByOrder).toHaveBeenCalledWith(7, 'ORD-2026-00007');
+    const button = fixture.nativeElement.querySelector('#invoice-button') as HTMLAnchorElement;
+    expect(button.getAttribute('href')).toBe('/invoices/new?orderId=7');
+  });
+
+  it('links the invoice of the order instead', () => {
+    const invoice: InvoiceSummary = {
+      id: 4, invoiceNumber: 'INV-2026-00004', orderId: 7, orderNumber: 'ORD-2026-00007', customerId: 3,
+      customerName: 'Sami Trabelsi', issueDate: '2026-10-19', dueDate: '2026-11-18', totalAmount: 5117,
+      status: 'ISSUED', paymentStatus: 'UNPAID'
+    };
+    invoices.findByOrder.and.returnValue(of(invoice));
+    service.get.and.returnValue(of(order('DELIVERED')));
+    const fixture = create('MANAGER');
+
+    expect(fixture.nativeElement.querySelector('#invoice-button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.invoice-link').getAttribute('href')).toBe('/invoices/4');
+    expect(fixture.nativeElement.querySelector('.billing').textContent).toContain('Émise');
+  });
+
+  it('does not offer the invoice to an employee', () => {
+    service.get.and.returnValue(of(order('CONFIRMED')));
+    const fixture = create('EMPLOYEE');
+
+    expect(fixture.nativeElement.querySelector('#invoice-button')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.billing').textContent).toContain('pas facturée');
   });
 });

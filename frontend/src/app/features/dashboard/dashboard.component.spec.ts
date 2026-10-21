@@ -239,7 +239,8 @@ describe('DashboardComponent', () => {
 
     const links = Array.from<HTMLAnchorElement>(fixture.nativeElement.querySelectorAll('app-kpi-card a'))
       .map(link => link.getAttribute('href'));
-    expect(links).toEqual(['/orders', '/products?lowStock=true', '/customers', '/products']);
+    expect(links).toEqual(
+      ['/invoices', '/invoices', '/orders', '/invoices', '/products?lowStock=true', '/customers', '/products']);
   });
 
   it('redraws the charts when the theme changes', () => {

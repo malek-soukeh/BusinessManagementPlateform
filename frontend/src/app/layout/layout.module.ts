@@ -33,6 +33,10 @@ export const layoutRoutes: Routes = [
         loadChildren: () => import('../features/orders/orders.module').then(m => m.OrdersModule)
       },
       {
+        path: 'invoices',
+        loadChildren: () => import('../features/invoices/invoices.module').then(m => m.InvoicesModule)
+      },
+      {
         path: 'categories',
         canActivate: [roleGuard(['ADMIN', 'MANAGER'])],
         loadChildren: () => import('../features/categories/categories.module').then(m => m.CategoriesModule)

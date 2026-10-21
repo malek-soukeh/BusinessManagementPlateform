@@ -79,6 +79,33 @@
       </div>
     </section>
 
+    <section class="panel billing" aria-label="Facturation" *ngIf="order.status !== 'PENDING'">
+      <h2 class="panel-title">Facturation</h2>
+      <app-skeleton *ngIf="invoice === undefined" width="50%" height="18px"></app-skeleton>
+      <p class="billing-line" *ngIf="invoice">
+        <mat-icon aria-hidden="true">receipt_long</mat-icon>
+        <a class="invoice-link" [routerLink]="['/invoices', invoice.id]">{{ invoice.invoiceNumber }}</a>
+        <span class="status-chip" [ngClass]="invoiceTone(invoice)">{{ invoiceLabel(invoice) }}</span>
+        <span class="muted">{{ invoice.totalAmount | number: '1.3-3' }} TND TTC</span>
+      </p>
+      <ng-container *ngIf="invoice === null">
+        <a
+          *ngIf="canInvoice; else notInvoiced"
+          id="invoice-button"
+          mat-flat-button
+          color="primary"
+          routerLink="/invoices/new"
+          [queryParams]="{ orderId: order.id }"
+        >
+          <mat-icon>receipt_long</mat-icon>
+          Créer la facture
+        </a>
+        <ng-template #notInvoiced>
+          <p class="billing-line muted">Cette commande n'est pas facturée.</p>
+        </ng-template>
+      </ng-container>
+    </section>
+
     <mat-card class="lines">
       <h2 class="panel-title lines-title">Lignes ({{ itemCount | number }} article{{ itemCount > 1 ? 's' : '' }})</h2>
       <div class="table-wrapper">
