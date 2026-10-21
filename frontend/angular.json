@@ -30,6 +30,8 @@
               "src/assets"
             ],
             "styles": [
+              "@fontsource-variable/inter/wght.css",
+              "@fontsource/material-icons/latin.css",
               "src/styles.scss"
             ],
             "scripts": []
@@ -99,6 +101,8 @@
               "src/assets"
             ],
             "styles": [
+              "@fontsource-variable/inter/wght.css",
+              "@fontsource/material-icons/latin.css",
               "src/styles.scss"
             ],
             "scripts": []
