@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { catchError, map, of, shareReplay } from 'rxjs';
 
+import { UserProfile } from '../../core/models/auth.models';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { prefersReducedMotion } from '../../core/utils/motion.util';
@@ -40,6 +41,10 @@ export class ShellComponent {
   /** Identifies the page shown in the outlet, so that a change of page triggers the transition. */
   routeKey(outlet: RouterOutlet): string {
     return outlet.isActivated ? outlet.activatedRoute.routeConfig?.path ?? '' : '';
+  }
+
+  initials(profile: UserProfile): string {
+    return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
   }
 
   logout(): void {

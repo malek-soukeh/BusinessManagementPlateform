@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { roleGuard } from '../core/guards/role.guard';
 import { SharedModule } from '../shared/shared.module';
+import { NotFoundComponent } from './not-found/not-found.component';
 import { ShellComponent } from './shell/shell.component';
 
 /** Every page of a logged-in user lives under the shell. New feature modules are added as children. */
@@ -46,13 +47,17 @@ export const layoutRoutes: Routes = [
         canActivate: [roleGuard(['ADMIN'])],
         loadChildren: () => import('../features/users/users.module').then(m => m.UsersModule)
       },
-      { path: '**', redirectTo: 'dashboard' }
+      {
+        path: 'profile',
+        loadChildren: () => import('../features/profile/profile.module').then(m => m.ProfileModule)
+      },
+      { path: '**', component: NotFoundComponent }
     ]
   }
 ];
 
 @NgModule({
-  declarations: [ShellComponent],
+  declarations: [ShellComponent, NotFoundComponent],
   imports: [SharedModule, RouterModule.forChild(layoutRoutes)]
 })
 export class LayoutModule {}

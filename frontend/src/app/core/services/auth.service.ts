@@ -43,6 +43,12 @@ export class AuthService {
     return this.currentSession()?.email ?? null;
   }
 
+  /** End of the session (expiration of the token), or null when nobody is logged in. */
+  get expiresAt(): Date | null {
+    const session = this.currentSession();
+    return session ? new Date(session.expiresAt) : null;
+  }
+
   isAuthenticated(): boolean {
     return this.currentSession() !== null;
   }

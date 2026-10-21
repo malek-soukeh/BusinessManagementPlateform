@@ -96,6 +96,21 @@ describe('AuthService', () => {
     expect(service.token).toBeNull();
   });
 
+  it('gives the end of the session, or null once logged out', () => {
+    const expiresAt = Date.now() + 60_000;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ accessToken: 'stored', email: 'a@b.tn', role: 'MANAGER', expiresAt })
+    );
+    setup();
+
+    expect(service.expiresAt?.getTime()).toBe(expiresAt);
+
+    service.logout();
+
+    expect(service.expiresAt).toBeNull();
+  });
+
   it('checks the role of the current user', () => {
     setup();
     service.login(credentials).subscribe();

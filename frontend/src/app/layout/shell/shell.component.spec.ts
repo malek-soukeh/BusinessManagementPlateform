@@ -1,3 +1,4 @@
+import { OverlayContainer } from '@angular/cdk/overlay';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
@@ -66,17 +67,35 @@ describe('ShellComponent', () => {
     expect(labels(fixture)).not.toContain('Utilisateurs');
   });
 
-  it('shows the name of the logged-in user', () => {
+  /** Opens the account menu, which Material renders in an overlay outside the component. */
+  function openMenu(fixture: ComponentFixture<ShellComponent>): HTMLElement {
+    fixture.nativeElement.querySelector('#user-menu-button').click();
+    fixture.detectChanges();
+    return TestBed.inject(OverlayContainer).getContainerElement();
+  }
+
+  it('shows the name, the role and the initials of the logged-in user', () => {
     const fixture = create('MANAGER');
 
     expect(fixture.nativeElement.querySelector('.user-name').textContent).toContain('Aziz Ben');
     expect(fixture.nativeElement.querySelector('.user-role').textContent).toContain('Manager');
+    expect(fixture.nativeElement.querySelector('.avatar').textContent.trim()).toBe('AB');
+  });
+
+  it('offers the profile and the logout in the account menu', () => {
+    const fixture = create('MANAGER');
+
+    const menu = openMenu(fixture);
+
+    expect(menu.querySelector('.menu-email')?.textContent).toContain('manager@techdistrib.tn');
+    expect(menu.querySelector('#profile-link')?.getAttribute('href')).toBe('/profile');
+    expect(menu.querySelector('#logout-button')).not.toBeNull();
   });
 
   it('logs out and goes back to the login page', () => {
     const fixture = create('MANAGER');
 
-    fixture.nativeElement.querySelector('#logout-button').click();
+    (openMenu(fixture).querySelector('#logout-button') as HTMLButtonElement).click();
 
     expect(auth.logout).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
@@ -94,6 +113,6 @@ describe('ShellComponent', () => {
     const fixture = create('MANAGER', true);
 
     expect(fixture.nativeElement.querySelector('.user-name')).toBeNull();
-    expect(fixture.nativeElement.querySelector('#logout-button')).not.toBeNull();
+    expect(openMenu(fixture).querySelector('#logout-button')).not.toBeNull();
   });
 });

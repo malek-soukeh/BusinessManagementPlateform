@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { Role } from '../core/models/auth.models';
 import { AuthService } from '../core/services/auth.service';
 import { layoutRoutes } from './layout.module';
+import { NotFoundComponent } from './not-found/not-found.component';
 
 /** The pages follow the rights of the API: a role that the API refuses is sent back to the dashboard. */
 describe('layout routes', () => {
@@ -45,8 +46,16 @@ describe('layout routes', () => {
     expect(String(open('users', 'EMPLOYEE')[0])).toBe('/dashboard');
   });
 
-  it('opens the dashboard and the customers to every role', () => {
+  it('opens the dashboard, the customers and the profile to every role', () => {
     expect(child('dashboard').canActivate).toBeUndefined();
     expect(child('customers').canActivate).toBeUndefined();
+    expect(child('profile').canActivate).toBeUndefined();
+  });
+
+  it('shows the not found page for an unknown address, as the last route', () => {
+    const children = layoutRoutes[0].children ?? [];
+
+    expect(children[children.length - 1].path).toBe('**');
+    expect(children[children.length - 1].component).toBe(NotFoundComponent);
   });
 });

@@ -50,13 +50,6 @@
       <span class="title">Business Management Platform</span>
       <span class="spacer"></span>
 
-      <ng-container *ngIf="profile$ | async as profile">
-        <div class="user">
-          <span class="user-name">{{ profile.firstName }} {{ profile.lastName }}</span>
-          <span class="user-role">{{ roleLabels[profile.role] }}</span>
-        </div>
-      </ng-container>
-
       <button
         id="theme-button"
         mat-icon-button
@@ -68,9 +61,41 @@
         <mat-icon>{{ theme.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>
 
-      <button id="logout-button" mat-icon-button type="button" aria-label="Se déconnecter" (click)="logout()">
-        <mat-icon>logout</mat-icon>
-      </button>
+      <ng-container *ngIf="{ profile: profile$ | async } as vm">
+        <button
+          id="user-menu-button"
+          mat-button
+          type="button"
+          class="user-button"
+          [matMenuTriggerFor]="userMenu"
+          aria-label="Menu du compte"
+        >
+          <span class="avatar" aria-hidden="true">
+            <ng-container *ngIf="vm.profile; else genericAvatar">{{ initials(vm.profile) }}</ng-container>
+            <ng-template #genericAvatar><mat-icon>person</mat-icon></ng-template>
+          </span>
+          <span class="user" *ngIf="vm.profile as profile">
+            <span class="user-name">{{ profile.firstName }} {{ profile.lastName }}</span>
+            <span class="user-role">{{ roleLabels[profile.role] }}</span>
+          </span>
+          <mat-icon class="chevron" aria-hidden="true">expand_more</mat-icon>
+        </button>
+
+        <mat-menu #userMenu="matMenu" xPosition="before">
+          <div class="menu-header" *ngIf="vm.profile as profile">
+            <span class="menu-name">{{ profile.firstName }} {{ profile.lastName }}</span>
+            <span class="menu-email">{{ profile.email }}</span>
+          </div>
+          <a mat-menu-item id="profile-link" routerLink="/profile">
+            <mat-icon>account_circle</mat-icon>
+            <span>Mon profil</span>
+          </a>
+          <button mat-menu-item id="logout-button" type="button" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Se déconnecter</span>
+          </button>
+        </mat-menu>
+      </ng-container>
     </mat-toolbar>
 
     <main class="content" [@routeFade]="routeKey(outlet)" [@.disabled]="reducedMotion">

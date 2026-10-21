@@ -1,0 +1,65 @@
+<div class="page">
+  <h1>Mon profil</h1>
+
+  <div class="panel loading" *ngIf="loading" aria-busy="true" aria-label="Chargement du profil">
+    <app-skeleton width="72px" height="72px" radius="50%"></app-skeleton>
+    <app-skeleton width="40%" height="20px"></app-skeleton>
+    <app-skeleton width="60%" height="14px"></app-skeleton>
+  </div>
+
+  <div class="panel error-panel" role="alert" *ngIf="errorMessage">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span class="error-message">{{ errorMessage }}</span>
+    <button mat-button color="primary" type="button" (click)="load()">Réessayer</button>
+  </div>
+
+  <ng-container *ngIf="profile && !loading">
+    <section class="panel identity">
+      <span class="avatar" aria-hidden="true">{{ initials }}</span>
+      <div class="identity-text">
+        <h2 class="name">{{ profile.firstName }} {{ profile.lastName }}</h2>
+        <span class="status-chip tone-info">{{ roleLabel(profile.role) }}</span>
+        <p class="role-description">{{ roleDescription(profile.role) }}</p>
+      </div>
+    </section>
+
+    <section class="info">
+      <div class="panel info-item">
+        <span class="info-label">Email</span>
+        <span class="info-value small">{{ profile.email }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Téléphone</span>
+        <span class="info-value small">{{ profile.phone || '—' }}</span>
+      </div>
+      <div class="panel info-item">
+        <span class="info-label">Statut du compte</span>
+        <span class="info-value small">{{ profile.status === 'ACTIVE' ? 'Actif' : 'Inactif' }}</span>
+      </div>
+      <div class="panel info-item" *ngIf="expiresAt">
+        <span class="info-label">Session valable jusqu'à</span>
+        <span class="info-value small">{{ expiresAt | date: 'HH:mm' }}</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Vos accès</h2>
+      <ul class="access">
+        <li *ngFor="let page of pages">
+          <a [routerLink]="page.route"><mat-icon aria-hidden="true">{{ page.icon }}</mat-icon>{{ page.label }}</a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="panel actions">
+      <p class="notice">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        Pour modifier vos informations ou votre mot de passe, contactez un administrateur.
+      </p>
+      <button mat-stroked-button color="warn" type="button" id="profile-logout" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Se déconnecter
+      </button>
+    </section>
+  </ng-container>
+</div>
