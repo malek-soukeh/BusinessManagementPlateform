@@ -6,8 +6,8 @@ const EASE = 'cubic-bezier(0.2, 0, 0, 1)';
 export const staggerIn = trigger('staggerIn', [
   transition('* => *', [
     query(':enter', [
-      style({ opacity: 0, transform: 'translateY(12px)' }),
-      stagger(45, animate(`320ms ${EASE}`, style({ opacity: 1, transform: 'none' })))
+      style({ opacity: 0, transform: 'translateY(6px)' }),
+      stagger(30, animate(`200ms ${EASE}`, style({ opacity: 1, transform: 'none' })))
     ], { optional: true })
   ])
 ]);
@@ -16,6 +16,6 @@ export const staggerIn = trigger('staggerIn', [
 export const fadeIn = trigger('fadeIn', [
   transition(':enter', [
     style({ opacity: 0 }),
-    animate(`260ms ${EASE}`, style({ opacity: 1 }))
+    animate(`200ms ${EASE}`, style({ opacity: 1 }))
   ])
 ]);

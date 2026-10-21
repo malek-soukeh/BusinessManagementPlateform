@@ -1,70 +1,87 @@
-<mat-sidenav-container class="shell">
-  <mat-sidenav
-    #drawer
-    class="sidenav"
-    [mode]="(isHandset$ | async) ? 'over' : 'side'"
-    [opened]="(isHandset$ | async) === false"
-    [fixedInViewport]="true"
-  >
-    <div class="brand">
-      <mat-icon>business_center</mat-icon>
-      <span>TechDistrib</span>
-    </div>
+<ng-container *ngIf="{ handset: (isHandset$ | async) ?? false, profile: profile$ | async } as vm">
+  <mat-sidenav-container class="shell" [autosize]="true">
+    <mat-sidenav
+      #drawer
+      class="sidenav"
+      [class.collapsed]="collapsed && !vm.handset"
+      [mode]="vm.handset ? 'over' : 'side'"
+      [opened]="!vm.handset"
+      [fixedInViewport]="true"
+    >
+      <div class="brand">
+        <span class="logo" aria-hidden="true"><mat-icon>bolt</mat-icon></span>
+        <span class="brand-name">TechDistrib</span>
+      </div>
 
-    <mat-nav-list>
-      <ng-container *ngFor="let item of navItems">
-        <a
-          *ngIf="!item.comingSoon; else soon"
-          mat-list-item
-          [routerLink]="item.route"
-          routerLinkActive="active"
-          (click)="drawer.mode === 'over' && drawer.close()"
+      <nav class="nav" aria-label="Navigation principale">
+        <div class="nav-group" *ngFor="let group of navGroups">
+          <p class="nav-group-label" *ngIf="group.label">{{ group.label }}</p>
+          <ng-container *ngFor="let item of group.items">
+            <a
+              *ngIf="!item.comingSoon; else soon"
+              class="nav-item"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [matTooltip]="item.label"
+              matTooltipPosition="right"
+              [matTooltipDisabled]="!collapsed || vm.handset"
+              (click)="closeIfOver(drawer)"
+            >
+              <mat-icon class="nav-icon" aria-hidden="true">{{ item.icon }}</mat-icon>
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+            <ng-template #soon>
+              <span class="nav-item nav-soon" aria-disabled="true">
+                <mat-icon class="nav-icon" aria-hidden="true">{{ item.icon }}</mat-icon>
+                <span class="nav-label">{{ item.label }}</span>
+              </span>
+            </ng-template>
+          </ng-container>
+        </div>
+      </nav>
+
+      <button
+        *ngIf="!vm.handset"
+        type="button"
+        class="collapse-button"
+        [attr.aria-label]="collapsed ? 'Déplier le menu' : 'Réduire le menu'"
+        [attr.aria-expanded]="!collapsed"
+        [matTooltip]="collapsed ? 'Déplier le menu' : ''"
+        matTooltipPosition="right"
+        (click)="toggleCollapsed()"
+      >
+        <mat-icon aria-hidden="true">{{ collapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left' }}</mat-icon>
+        <span class="collapse-label">Réduire le menu</span>
+      </button>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <header class="app-topbar">
+        <button
+          *ngIf="vm.handset"
+          mat-icon-button
+          type="button"
+          aria-label="Ouvrir le menu"
+          (click)="drawer.toggle()"
         >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle class="nav-label">{{ item.label }}</span>
-        </a>
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="topbar-brand" *ngIf="vm.handset">TechDistrib</span>
+        <span class="spacer"></span>
 
-        <ng-template #soon>
-          <a mat-list-item class="nav-soon" aria-disabled="true">
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle class="nav-label">{{ item.label }}</span>
-            <span matListItemLine class="soon-tag">bientôt</span>
-          </a>
-        </ng-template>
-      </ng-container>
-    </mat-nav-list>
-  </mat-sidenav>
+        <button
+          id="theme-button"
+          mat-icon-button
+          type="button"
+          [attr.aria-label]="theme.isDark ? 'Activer le mode clair' : 'Activer le mode sombre'"
+          [matTooltip]="theme.isDark ? 'Mode clair' : 'Mode sombre'"
+          (click)="theme.toggle()"
+        >
+          <mat-icon>{{ theme.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
 
-  <mat-sidenav-content>
-    <mat-toolbar color="primary" class="toolbar">
-      <button
-        *ngIf="isHandset$ | async"
-        mat-icon-button
-        type="button"
-        aria-label="Ouvrir le menu"
-        (click)="drawer.toggle()"
-      >
-        <mat-icon>menu</mat-icon>
-      </button>
-
-      <span class="title">Business Management Platform</span>
-      <span class="spacer"></span>
-
-      <button
-        id="theme-button"
-        mat-icon-button
-        type="button"
-        [attr.aria-label]="theme.isDark ? 'Activer le mode clair' : 'Activer le mode sombre'"
-        [matTooltip]="theme.isDark ? 'Mode clair' : 'Mode sombre'"
-        (click)="theme.toggle()"
-      >
-        <mat-icon>{{ theme.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
-      </button>
-
-      <ng-container *ngIf="{ profile: profile$ | async } as vm">
         <button
           id="user-menu-button"
-          mat-button
           type="button"
           class="user-button"
           [matMenuTriggerFor]="userMenu"
@@ -95,11 +112,11 @@
             <span>Se déconnecter</span>
           </button>
         </mat-menu>
-      </ng-container>
-    </mat-toolbar>
+      </header>
 
-    <main class="content" [@routeFade]="routeKey(outlet)" [@.disabled]="reducedMotion">
-      <router-outlet #outlet="outlet"></router-outlet>
-    </main>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+      <main class="content" [@routeFade]="routeKey(outlet)" [@.disabled]="reducedMotion">
+        <router-outlet #outlet="outlet"></router-outlet>
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</ng-container>

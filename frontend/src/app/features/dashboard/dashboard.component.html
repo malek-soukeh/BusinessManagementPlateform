@@ -1,12 +1,5 @@
 <div class="page" [@.disabled]="reducedMotion">
-  <header class="header">
-    <div>
-      <h1>Tableau de bord</h1>
-      <p class="subtitle">
-        {{ isEmployee ? 'Votre activité' : "Vue d'ensemble de l'activité" }}
-        <span class="updated" *ngIf="lastUpdated">· Mis à jour à {{ lastUpdated | date: 'HH:mm' }}</span>
-      </p>
-    </div>
+  <app-page-header title="Tableau de bord" [subtitle]="subtitle">
     <button
       id="refresh-button"
       mat-stroked-button
@@ -17,7 +10,7 @@
       <mat-icon [class.spin]="refreshing">refresh</mat-icon>
       Actualiser
     </button>
-  </header>
+  </app-page-header>
 
   <mat-progress-bar
     class="refresh-bar"

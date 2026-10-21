@@ -412,6 +412,11 @@ a { color: var(--app-primary); }
 .mat-mdc-menu-item .mat-icon { margin-right: 10px; font-size: 18px; width: 18px; height: 18px; color: var(--app-muted); }
 .mat-mdc-menu-item.danger, .mat-mdc-menu-item.danger .mat-icon { color: var(--app-danger); }
 
+/* Title block at the top of a menu (account menu). */
+.menu-header { display: flex; flex-direction: column; padding: 10px 16px; border-bottom: 1px solid var(--app-border); }
+.menu-name { font-weight: 600; font-size: 14px; }
+.menu-email { font-size: 12px; color: var(--app-muted); }
+
 /* Dialogs: 12 px radius, soft shadow. */
 .mat-mdc-dialog-container.mat-mdc-dialog-container {
   --mdc-dialog-container-shape: 12px;
@@ -493,8 +498,9 @@ a { color: var(--app-primary); }
 }
 
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.panel-title { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--app-text); }
-.panel-head .panel-title { margin: 0; }
+/* Doubled class: these titles are h2 elements, which `.mat-typography h2` would otherwise enlarge. */
+.panel-title.panel-title { margin: 0 0 12px; font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: 0; color: var(--app-text); }
+.panel-head .panel-title.panel-title { margin: 0; }
 
 .error-panel {
   display: flex;
@@ -629,6 +635,8 @@ a.compact-title:hover, a.compact-title:focus-visible { color: var(--app-primary)
 .cell-sub { margin-top: 2px; font-size: 12px; color: var(--app-muted); }
 a.cell-link { font-weight: 500; color: var(--app-text); text-decoration: none; }
 a.cell-link:hover, a.cell-link:focus-visible { color: var(--app-primary); }
+/* Document numbers (INV-2026-00001...) never break on their hyphens. */
+a.cell-link.tabular { white-space: nowrap; }
 .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .nowrap { white-space: nowrap; }
 .muted { color: var(--app-muted); }
@@ -663,7 +671,7 @@ a.cell-link:hover, a.cell-link:focus-visible { color: var(--app-primary); }
   border-bottom: 1px solid var(--app-border);
 }
 
-.form-section-title { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: var(--app-text); }
+.form-section-title.form-section-title { margin: 0 0 4px; font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: 0; color: var(--app-text); }
 .form-section-text { margin: 0; font-size: 13px; color: var(--app-muted); }
 
 .form-grid {

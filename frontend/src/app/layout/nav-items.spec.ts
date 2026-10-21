@@ -1,4 +1,4 @@
-import { NAV_ITEMS, visibleNavItems } from './nav-items';
+import { NAV_ITEMS, visibleNavGroups, visibleNavItems } from './nav-items';
 
 describe('visibleNavItems', () => {
   const labels = (role: Parameters<typeof visibleNavItems>[0]) => visibleNavItems(role).map(item => item.label);
@@ -20,5 +20,22 @@ describe('visibleNavItems', () => {
 
   it('shows nothing when nobody is logged in', () => {
     expect(visibleNavItems(null)).toEqual([]);
+  });
+
+  it('groups the entries by section for the menu', () => {
+    const groups = (role: Parameters<typeof visibleNavGroups>[0]) =>
+      visibleNavGroups(role).map(group => `${group.label ?? '-'}: ${group.items.map(item => item.label).join(', ')}`);
+
+    expect(groups('ADMIN')).toEqual([
+      '-: Tableau de bord',
+      'Gestion: Clients, Produits, Catégories, Stock',
+      'Ventes: Commandes, Factures',
+      'Administration: Utilisateurs'
+    ]);
+    expect(groups('EMPLOYEE')).toEqual([
+      '-: Tableau de bord',
+      'Gestion: Clients, Produits, Stock',
+      'Ventes: Commandes, Factures'
+    ]);
   });
 });

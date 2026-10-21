@@ -1,11 +1,37 @@
 <div class="login-page">
-  <mat-card class="login-card">
-    <mat-card-header>
-      <mat-card-title>Business Management Platform</mat-card-title>
-      <mat-card-subtitle>Connectez-vous pour continuer</mat-card-subtitle>
-    </mat-card-header>
+  <aside class="brand-panel" aria-hidden="true">
+    <div class="brand">
+      <span class="logo"><mat-icon>bolt</mat-icon></span>
+      <span class="brand-name">TechDistrib</span>
+    </div>
 
-    <mat-card-content>
+    <div class="pitch">
+      <h2>Toute votre gestion commerciale, au même endroit.</h2>
+      <ul>
+        <li><mat-icon>inventory_2</mat-icon>Catalogue et stock suivis en temps réel</li>
+        <li><mat-icon>shopping_cart</mat-icon>Commandes, du devis à la livraison</li>
+        <li><mat-icon>receipt_long</mat-icon>Factures, échéances et encaissements</li>
+      </ul>
+    </div>
+
+    <p class="footnote">Business Management Platform</p>
+  </aside>
+
+  <main class="form-panel">
+    <div class="form-box">
+      <div class="mobile-brand">
+        <span class="logo"><mat-icon>bolt</mat-icon></span>
+        <span class="brand-name">TechDistrib</span>
+      </div>
+
+      <h1>Connexion</h1>
+      <p class="intro">Connectez-vous pour continuer.</p>
+
+      <div class="error error-banner" *ngIf="errorMessage" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ errorMessage }}</span>
+      </div>
+
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
         <mat-form-field appearance="outline">
           <mat-label>Email</mat-label>
@@ -34,13 +60,13 @@
           <mat-error *ngIf="form.controls.password.hasError('required')">Le mot de passe est obligatoire</mat-error>
         </mat-form-field>
 
-        <p class="error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
-
         <button mat-flat-button color="primary" type="submit" class="submit" [disabled]="loading">
-          <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
-          <span *ngIf="!loading">Se connecter</span>
+          <mat-spinner *ngIf="loading" diameter="18"></mat-spinner>
+          <span>{{ loading ? 'Connexion…' : 'Se connecter' }}</span>
         </button>
       </form>
-    </mat-card-content>
-  </mat-card>
+
+      <p class="help">Mot de passe oublié ? Contactez votre administrateur.</p>
+    </div>
+  </main>
 </div>

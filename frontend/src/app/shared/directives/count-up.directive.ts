@@ -8,7 +8,7 @@ import { prefersReducedMotion } from '../../core/utils/motion.util';
 /** Length of the count-up animation, in milliseconds. 0 shows the final value at once. */
 export const COUNT_UP_DURATION = new InjectionToken<number>('COUNT_UP_DURATION', {
   providedIn: 'root',
-  factory: () => (prefersReducedMotion() ? 0 : 900)
+  factory: () => (prefersReducedMotion() ? 0 : 300)
 });
 
 /**

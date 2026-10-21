@@ -104,7 +104,7 @@ function doughnut(
       responsive: true,
       maintainAspectRatio: false,
       cutout: '72%',
-      animation: animate ? { animateRotate: true, duration: 700 } : false,
+      animation: animate ? { animateRotate: true, duration: 300 } : false,
       plugins: {
         legend: { display: false },
         tooltip: {

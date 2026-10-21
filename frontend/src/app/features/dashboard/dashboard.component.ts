@@ -69,6 +69,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   collectionRate: number | null = null;
   lastUpdated: Date | null = null;
 
+  get subtitle(): string {
+    const scope = this.isEmployee ? 'Votre activité' : "Vue d'ensemble de l'activité";
+    if (!this.lastUpdated) {
+      return scope;
+    }
+    const time = this.lastUpdated.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `${scope} · mise à jour à ${time}`;
+  }
+
   get refreshing(): boolean {
     return this.stats.loading || this.orders.loading || this.overdue.loading || this.lowStock.loading;
   }

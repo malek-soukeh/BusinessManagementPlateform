@@ -1,3 +1,4 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -29,7 +30,11 @@ describe('ShellComponent', () => {
     TestBed.configureTestingModule({
       declarations: [ShellComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
-      providers: [{ provide: AuthService, useValue: auth }]
+      providers: [
+        { provide: AuthService, useValue: auth },
+        // A desktop screen: the headless browser of the tests is narrow enough to look like a phone.
+        { provide: BreakpointObserver, useValue: { observe: () => of({ matches: false, breakpoints: {} }) } }
+      ]
     });
     router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.resolveTo(true);
@@ -104,7 +109,7 @@ describe('ShellComponent', () => {
   it('only links the pages that exist', () => {
     const fixture = create('ADMIN');
 
-    const links = Array.from<Element>(fixture.nativeElement.querySelectorAll('mat-nav-list a[href]'));
+    const links = Array.from<Element>(fixture.nativeElement.querySelectorAll('.nav a[href]'));
 
     expect(links.map(link => link.getAttribute('href'))).toEqual(['/dashboard', '/customers', '/products', '/categories', '/inventory', '/orders', '/invoices', '/users']);
   });
@@ -114,5 +119,28 @@ describe('ShellComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.user-name')).toBeNull();
     expect(openMenu(fixture).querySelector('#logout-button')).not.toBeNull();
+  });
+
+  it('groups the menu by section', () => {
+    const fixture = create('ADMIN');
+
+    const groups = Array.from<Element>(fixture.nativeElement.querySelectorAll('.nav-group-label'))
+      .map(label => label.textContent?.trim());
+    expect(groups).toEqual(['Gestion', 'Ventes', 'Administration']);
+  });
+
+  it('collapses the menu to its icons and remembers it', () => {
+    localStorage.removeItem('bmp.nav-collapsed');
+    const fixture = create('MANAGER');
+    const sidenav = () => fixture.nativeElement.querySelector('.sidenav') as HTMLElement;
+
+    expect(sidenav().classList).not.toContain('collapsed');
+
+    (fixture.nativeElement.querySelector('.collapse-button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(sidenav().classList).toContain('collapsed');
+    expect(localStorage.getItem('bmp.nav-collapsed')).toBe('true');
+    localStorage.removeItem('bmp.nav-collapsed');
   });
 });
