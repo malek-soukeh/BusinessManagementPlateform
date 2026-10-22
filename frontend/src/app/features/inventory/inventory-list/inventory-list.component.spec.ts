@@ -124,4 +124,13 @@ describe('InventoryListComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.error-panel')).toBeNull();
   });
+
+  it('shows no stock value to an employee, whose products come without purchase price', () => {
+    const { purchasePrice: _hidden, ...withoutCost } = product(1);
+    products.list.and.returnValue(of(page([withoutCost as Product])));
+    const fixture = create('EMPLOYEE');
+
+    expect(fixture.nativeElement.querySelector('th.mat-column-value')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('TND');
+  });
 });

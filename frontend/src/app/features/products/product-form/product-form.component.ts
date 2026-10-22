@@ -99,7 +99,7 @@ export class ProductFormComponent implements OnInit {
             name: product.name,
             description: product.description ?? '',
             categoryId: product.categoryId,
-            purchasePrice: product.purchasePrice,
+            purchasePrice: product.purchasePrice ?? null,
             sellingPrice: product.sellingPrice,
             quantity: product.quantity,
             minimumStock: product.minimumStock,

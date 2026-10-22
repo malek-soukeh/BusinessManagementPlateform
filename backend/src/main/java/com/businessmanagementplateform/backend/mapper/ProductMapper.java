@@ -7,13 +7,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductMapper {
 
-    public ProductResponse toResponse(Product product) {
+    /**
+     * @param includeCost whether the purchase price is part of the response; when false it is left null
+     *                    and omitted from the JSON (see {@code CurrentUser#canSeeCosts()}).
+     */
+    public ProductResponse toResponse(Product product, boolean includeCost) {
         return new ProductResponse(
                 product.getId(),
                 product.getReference(),
                 product.getName(),
                 product.getDescription(),
-                product.getPurchasePrice(),
+                includeCost ? product.getPurchasePrice() : null,
                 product.getSellingPrice(),
                 product.getQuantity(),
                 product.getMinimumStock(),

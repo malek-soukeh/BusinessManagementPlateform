@@ -11,7 +11,8 @@ export interface Product {
   reference: string;
   name: string;
   description: string | null;
-  purchasePrice: number;
+  /** Cost data: the API only sends it to ADMIN and MANAGER, it is absent for an EMPLOYEE. */
+  purchasePrice?: number;
   sellingPrice: number;
   quantity: number;
   minimumStock: number;
@@ -69,7 +70,8 @@ export function productToUpdatePayload(product: Product): ProductUpdatePayload {
     reference: product.reference,
     name: product.name,
     description: product.description,
-    purchasePrice: product.purchasePrice,
+    // Only ADMIN and MANAGER modify a product, and the API always gives them the purchase price.
+    purchasePrice: product.purchasePrice as number,
     sellingPrice: product.sellingPrice,
     minimumStock: product.minimumStock,
     categoryId: product.categoryId,

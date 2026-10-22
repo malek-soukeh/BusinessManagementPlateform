@@ -13,6 +13,7 @@ import com.businessmanagementplateform.backend.mapper.ProductMapper;
 import com.businessmanagementplateform.backend.repository.CategoryRepository;
 import com.businessmanagementplateform.backend.repository.ProductRepository;
 import com.businessmanagementplateform.backend.repository.ProductSpecifications;
+import com.businessmanagementplateform.backend.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
     private final StockService stockService;
+    private final CurrentUser currentUser;
     @Transactional
     public ProductResponse create(CreateProductRequest request, String userEmail) {
         String reference = normalizeReference(request.reference());
@@ -51,7 +53,7 @@ public class ProductService {
 
         Product saved = productRepository.saveAndFlush(product);
         stockService.recordInitialStock(saved, userEmail);
-        return productMapper.toResponse(saved);    }
+        return toResponse(saved);    }
 
     @Transactional(readOnly = true)
     public PageResponse<ProductResponse> findAll(String q, Long categoryId, ProductStatus status,
@@ -59,12 +61,12 @@ public class ProductService {
         return PageResponse.from(
                 productRepository.findAll(
                                 ProductSpecifications.search(q, categoryId, status, lowStock), pageable)
-                        .map(productMapper::toResponse));
+                        .map(this::toResponse));
     }
 
     @Transactional(readOnly = true)
     public ProductResponse findById(Long id) {
-        return productMapper.toResponse(getProduct(id));
+        return toResponse(getProduct(id));
     }
 
     @Transactional
@@ -92,7 +94,7 @@ public class ProductService {
             product.setStatus(request.status());
         }
 
-        return productMapper.toResponse(productRepository.saveAndFlush(product));
+        return toResponse(productRepository.saveAndFlush(product));
     }
 
     @Transactional
@@ -100,6 +102,11 @@ public class ProductService {
         Product product = getProduct(id);
         product.setStatus(ProductStatus.INACTIVE);
         productRepository.saveAndFlush(product);
+    }
+
+    /** Every product response goes through here: the purchase price is only given to the roles allowed to see costs. */
+    private ProductResponse toResponse(Product product) {
+        return productMapper.toResponse(product, currentUser.canSeeCosts());
     }
 
     private Product getProduct(Long id) {

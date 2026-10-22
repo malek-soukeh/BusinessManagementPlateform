@@ -201,4 +201,18 @@ describe('ProductListComponent', () => {
       { q: '', categoryId: null, status: 'ACTIVE', lowStock: false, page: 0, size: 10 });
     expect(fixture.nativeElement.querySelector('.active-filters')).toBeNull();
   });
+
+  it('shows no purchase price to an employee, who does not receive it', () => {
+    const { purchasePrice: _hidden, ...withoutCost } = product(1);
+    service.list.and.returnValue(of(page([withoutCost as Product])));
+    const fixture = create('EMPLOYEE');
+
+    expect(fixture.nativeElement.textContent).not.toContain('Achat');
+  });
+
+  it('shows the purchase price to a manager', () => {
+    const fixture = create('MANAGER');
+
+    expect(fixture.nativeElement.textContent).toContain('Achat');
+  });
 });

@@ -44,7 +44,10 @@ export class InventoryListComponent implements OnInit, OnDestroy {
 
   /** Only administrators and managers adjust the stock (the API refuses the others). */
   readonly canAdjust = this.auth.hasAnyRole(['ADMIN', 'MANAGER']);
-  readonly columns = ['product', 'stock', 'minimum', 'value', 'actions'];
+  /** The stock value is computed from the purchase price, which the API only gives to ADMIN and MANAGER. */
+  readonly columns = this.canAdjust
+    ? ['product', 'stock', 'minimum', 'value', 'actions']
+    : ['product', 'stock', 'minimum', 'actions'];
   readonly search = new FormControl('', { nonNullable: true });
   readonly skeletonRows = [0, 1, 2, 3, 4];
 
@@ -120,6 +123,11 @@ export class InventoryListComponent implements OnInit, OnDestroy {
 
   reload(): void {
     this.patchQuery({});
+  }
+
+  /** Value of the stock at purchase price, or null when the cost is not given. */
+  stockValue(product: Product): number | null {
+    return product.purchasePrice === undefined ? null : product.quantity * product.purchasePrice;
   }
 
   level(product: Product): StockLevel {

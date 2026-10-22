@@ -149,4 +149,13 @@ describe('StockHistoryComponent', () => {
 
     expect(fixture.nativeElement.querySelector('.empty').textContent).toContain('Aucun mouvement de stock');
   });
+
+  it('shows no stock value when the purchase price is not given (employee)', () => {
+    const { purchasePrice: _hidden, ...withoutCost } = product;
+    products.get.and.returnValue(of(withoutCost as Product));
+    const fixture = create('EMPLOYEE');
+
+    expect(fixture.nativeElement.querySelector('.value-figure')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Seuil minimum');
+  });
 });

@@ -45,7 +45,7 @@
           <span class="figure-label">Seuil minimum</span>
           <span class="figure-value">{{ product.minimumStock | number }}</span>
         </div>
-        <div class="panel figure">
+        <div class="panel figure value-figure" *ngIf="product.purchasePrice !== undefined">
           <span class="figure-label">Valeur au prix d'achat</span>
           <span class="figure-value">{{ product.quantity * product.purchasePrice | number: '1.3-3' }} TND</span>
         </div>

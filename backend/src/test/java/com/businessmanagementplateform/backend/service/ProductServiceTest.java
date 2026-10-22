@@ -11,6 +11,7 @@ import com.businessmanagementplateform.backend.exception.ResourceNotFoundExcepti
 import com.businessmanagementplateform.backend.mapper.ProductMapper;
 import com.businessmanagementplateform.backend.repository.CategoryRepository;
 import com.businessmanagementplateform.backend.repository.ProductRepository;
+import com.businessmanagementplateform.backend.security.CurrentUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,8 +19,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +48,9 @@ class ProductServiceTest {
     private ProductMapper productMapper = new ProductMapper();
     @Mock
     private StockService stockService;
+
+    @Mock
+    private CurrentUser currentUser;
 
     @InjectMocks
     private ProductService productService;
@@ -212,5 +220,54 @@ class ProductServiceTest {
         assertThatThrownBy(() -> productService.findById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    // ---------- purchase price (cost data) by role ----------
+
+    @Test
+    void findById_givesThePurchasePrice_toAdministratorsAndManagers() {
+        when(currentUser.canSeeCosts()).thenReturn(true);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product(1L, "A", 0L, 5, 1)));
+
+        ProductResponse response = productService.findById(1L);
+
+        assertThat(response.purchasePrice()).isEqualByComparingTo("2000.000");
+        assertThat(response.sellingPrice()).isEqualByComparingTo("2500.000");
+    }
+
+    @Test
+    void findById_hidesThePurchasePrice_fromEmployees() {
+        when(currentUser.canSeeCosts()).thenReturn(false);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product(1L, "A", 0L, 5, 1)));
+
+        ProductResponse response = productService.findById(1L);
+
+        assertThat(response.purchasePrice()).isNull();
+        assertThat(response.sellingPrice()).isEqualByComparingTo("2500.000");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void findAll_hidesThePurchasePriceOfEveryProduct_fromEmployees() {
+        when(currentUser.canSeeCosts()).thenReturn(false);
+        when(productRepository.findAll(any(Specification.class), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of(product(1L, "A", 0L, 5, 1), product(2L, "B", 0L, 5, 1))));
+
+        var page = productService.findAll(null, null, null, null, PageRequest.of(0, 20));
+
+        assertThat(page.content()).hasSize(2).allSatisfy(item -> assertThat(item.purchasePrice()).isNull());
+    }
+
+    @Test
+    void update_returnsThePurchasePrice_toTheManagerWhoChangedIt() {
+        Product existing = product(1L, "PC001", 3L, 15, 5);
+        when(currentUser.canSeeCosts()).thenReturn(true);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(categoryRepository.findById(7L)).thenReturn(Optional.of(category()));
+        when(productRepository.saveAndFlush(existing)).thenReturn(existing);
+
+        ProductResponse response = productService.update(1L, updateRequest("PC001", null, 3L));
+
+        assertThat(response.purchasePrice()).isEqualByComparingTo("2000.000");
     }
 }

@@ -7,6 +7,7 @@ import com.businessmanagementplateform.backend.dto.UpdateProductRequest;
 import com.businessmanagementplateform.backend.enums.ProductStatus;
 import com.businessmanagementplateform.backend.service.ProductService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -33,6 +34,9 @@ public class ProductController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @Operation(summary = "Lister les produits",
+            description = "Recherche (référence, nom), filtres catégorie / statut / stock bas, pagination. "
+                    + "Le prix d'achat n'est renvoyé qu'aux rôles ADMIN et MANAGER.")
     public PageResponse<ProductResponse> findAll(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Long categoryId,
@@ -44,6 +48,8 @@ public class ProductController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @Operation(summary = "Détail d'un produit",
+            description = "Le prix d'achat n'est renvoyé qu'aux rôles ADMIN et MANAGER.")
     public ProductResponse findById(@PathVariable Long id) {
         return productService.findById(id);
     }
