@@ -12,18 +12,25 @@ import com.businessmanagementplateform.backend.enums.PaymentStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.InvoiceMapper;
+import com.businessmanagementplateform.backend.repository.InvoicePaidAmount;
 import com.businessmanagementplateform.backend.repository.InvoiceRepository;
 import com.businessmanagementplateform.backend.repository.InvoiceSpecifications;
 import com.businessmanagementplateform.backend.repository.OrderRepository;
+import com.businessmanagementplateform.backend.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -34,6 +41,7 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
     private final InvoiceMapper invoiceMapper;
     private final Clock clock;
     private final BigDecimal taxRatePercent;
@@ -41,12 +49,14 @@ public class InvoiceService {
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           OrderRepository orderRepository,
+                          PaymentRepository paymentRepository,
                           InvoiceMapper invoiceMapper,
                           Clock clock,
                           @Value("${app.invoice.tax-rate:19}") BigDecimal taxRatePercent,
                           @Value("${app.invoice.payment-terms-days:30}") int paymentTermsDays) {
         this.invoiceRepository = invoiceRepository;
         this.orderRepository = orderRepository;
+        this.paymentRepository = paymentRepository;
         this.invoiceMapper = invoiceMapper;
         this.clock = clock;
         this.taxRatePercent = taxRatePercent;
@@ -103,17 +113,23 @@ public class InvoiceService {
                 .paymentStatus(settled ? PaymentStatus.PAID : PaymentStatus.UNPAID)
                 .build();
 
-        return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice));
+        // A new invoice has no payment yet.
+        return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice), BigDecimal.ZERO);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<InvoiceSummaryResponse> findAll(String q, InvoiceStatus status,
                                                         PaymentStatus paymentStatus,
                                                         String ownerEmail, Pageable pageable) {
-        return PageResponse.from(
-                invoiceRepository.findAll(
-                                InvoiceSpecifications.search(q, status, paymentStatus, ownerEmail), pageable)
-                        .map(invoiceMapper::toSummary));
+        Page<Invoice> page = invoiceRepository.findAll(
+                InvoiceSpecifications.search(q, status, paymentStatus, ownerEmail), pageable);
+
+        // One aggregated query for the whole page, not one query per invoice.
+        Map<Long, BigDecimal> paidByInvoice = paidAmounts(
+                page.getContent().stream().map(Invoice::getId).toList());
+
+        return PageResponse.from(page.map(
+                invoice -> invoiceMapper.toSummary(invoice, paidByInvoice.get(invoice.getId()))));
     }
 
     @Transactional(readOnly = true)
@@ -125,8 +141,9 @@ public class InvoiceService {
                 && !invoice.getOrder().getCreatedBy().getEmail().equalsIgnoreCase(ownerEmail)) {
             throw new ResourceNotFoundException("Invoice not found with id " + id);
         }
-        return invoiceMapper.toResponse(invoice);
+        return invoiceMapper.toResponse(invoice, paidAmounts(List.of(id)).get(id));
     }
+
     @Transactional
     public InvoiceResponse cancel(Long id) {
         Invoice invoice = invoiceRepository.findByIdForUpdate(id)
@@ -141,7 +158,8 @@ public class InvoiceService {
         }
 
         invoice.setStatus(InvoiceStatus.CANCELLED);
-        return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice));
+        // Only an unpaid invoice can be cancelled, so there is nothing paid to report.
+        return invoiceMapper.toResponse(invoiceRepository.saveAndFlush(invoice), BigDecimal.ZERO);
     }
 
     /** Flags the ISSUED invoices whose due date is past. Returns how many were flagged. */
@@ -155,5 +173,17 @@ public class InvoiceService {
         late.forEach(invoice -> invoice.setStatus(InvoiceStatus.OVERDUE));
         invoiceRepository.saveAll(late);
         return late.size();
+    }
+
+    /** Sum of the payments per invoice id; an invoice without payment is absent from the map. */
+    private Map<Long, BigDecimal> paidAmounts(Collection<Long> invoiceIds) {
+        if (invoiceIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, BigDecimal> result = new HashMap<>();
+        for (InvoicePaidAmount row : paymentRepository.sumAmountByInvoiceIds(invoiceIds)) {
+            result.put(row.getInvoiceId(), row.getPaidAmount());
+        }
+        return result;
     }
 }

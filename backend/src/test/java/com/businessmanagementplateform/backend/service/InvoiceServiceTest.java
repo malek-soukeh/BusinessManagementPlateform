@@ -16,8 +16,10 @@ import com.businessmanagementplateform.backend.enums.PaymentStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.InvoiceMapper;
+import com.businessmanagementplateform.backend.repository.InvoicePaidAmount;
 import com.businessmanagementplateform.backend.repository.InvoiceRepository;
 import com.businessmanagementplateform.backend.repository.OrderRepository;
+import com.businessmanagementplateform.backend.repository.PaymentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +46,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,11 +65,14 @@ class InvoiceServiceTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private PaymentRepository paymentRepository;
+
     private InvoiceService invoiceService;
 
     @BeforeEach
     void setUp() {
-        invoiceService = new InvoiceService(invoiceRepository, orderRepository,
+        invoiceService = new InvoiceService(invoiceRepository, orderRepository, paymentRepository,
                 new InvoiceMapper(), CLOCK, new BigDecimal("19"), 30);
     }
 
@@ -224,12 +231,30 @@ class InvoiceServiceTest {
     // ---------- findById / findAll ----------
 
     private Invoice invoice() {
-        return Invoice.builder().id(9L).invoiceNumber("INV-2026-00009")
+        return invoice(9L);
+    }
+
+    private Invoice invoice(Long id) {
+        return Invoice.builder().id(id).invoiceNumber(String.format("INV-2026-%05d", id))
                 .order(order(OrderStatus.CONFIRMED, "100.000"))
                 .issueDate(TODAY).dueDate(TODAY.plusDays(30))
                 .subtotal(new BigDecimal("100.000")).taxAmount(new BigDecimal("19.000"))
                 .discount(new BigDecimal("0.000")).totalAmount(new BigDecimal("119.000"))
                 .status(InvoiceStatus.ISSUED).paymentStatus(PaymentStatus.UNPAID).build();
+    }
+
+    private InvoicePaidAmount paid(long invoiceId, String amount) {
+        return new InvoicePaidAmount() {
+            @Override
+            public Long getInvoiceId() {
+                return invoiceId;
+            }
+
+            @Override
+            public BigDecimal getPaidAmount() {
+                return new BigDecimal(amount);
+            }
+        };
     }
 
     @Test
@@ -257,6 +282,84 @@ class InvoiceServiceTest {
         assertThat(result.content().get(0).invoiceNumber()).isEqualTo("INV-2026-00009");
         assertThat(result.content().get(0).paymentStatus()).isEqualTo("UNPAID");
     }
+
+    // ---------- paid and remaining amounts ----------
+
+    @Test
+    void generate_startsWithNothingPaid() {
+        givenOrder(OrderStatus.CONFIRMED, "5000.000");
+        givenSuccessfulSave();
+
+        InvoiceResponse response = invoiceService.generate(
+                new CreateInvoiceRequest(5L, new BigDecimal("500"), null));
+
+        assertThat(response.paidAmount()).isEqualByComparingTo("0.000");
+        assertThat(response.remainingAmount()).isEqualByComparingTo("5355.000");
+    }
+
+    @Test
+    void findById_reportsThePaidAndRemainingAmounts() {
+        when(invoiceRepository.findById(9L)).thenReturn(Optional.of(invoice()));
+        when(paymentRepository.sumAmountByInvoiceIds(List.of(9L)))
+                .thenReturn(List.of(paid(9L, "50.000")));
+
+        InvoiceResponse response = invoiceService.findById(9L, null);
+
+        assertThat(response.paidAmount()).isEqualByComparingTo("50.000");
+        assertThat(response.remainingAmount()).isEqualByComparingTo("69.000");
+    }
+
+    @Test
+    void findById_reportsNothingPaid_whenTheInvoiceHasNoPayment() {
+        when(invoiceRepository.findById(9L)).thenReturn(Optional.of(invoice()));
+        when(paymentRepository.sumAmountByInvoiceIds(List.of(9L))).thenReturn(List.of());
+
+        InvoiceResponse response = invoiceService.findById(9L, null);
+
+        assertThat(response.paidAmount()).isEqualByComparingTo("0.000");
+        assertThat(response.remainingAmount()).isEqualByComparingTo("119.000");
+    }
+
+    @Test
+    void findById_neverReportsANegativeRemainingAmount() {
+        when(invoiceRepository.findById(9L)).thenReturn(Optional.of(invoice()));
+        when(paymentRepository.sumAmountByInvoiceIds(List.of(9L)))
+                .thenReturn(List.of(paid(9L, "200.000")));
+
+        assertThat(invoiceService.findById(9L, null).remainingAmount()).isEqualByComparingTo("0.000");
+    }
+
+    @Test
+    void findAll_readsThePaymentsOfTheWholePageInOneQuery() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(invoiceRepository.findAll(ArgumentMatchers.<Specification<Invoice>>any(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(invoice(9L), invoice(10L)), pageable, 2));
+        when(paymentRepository.sumAmountByInvoiceIds(List.of(9L, 10L)))
+                .thenReturn(List.of(paid(9L, "119.000")));
+
+        PageResponse<InvoiceSummaryResponse> result = invoiceService.findAll(
+                null, null, null, null, pageable);
+
+        InvoiceSummaryResponse fullyPaid = result.content().get(0);
+        InvoiceSummaryResponse unpaid = result.content().get(1);
+        assertThat(fullyPaid.paidAmount()).isEqualByComparingTo("119.000");
+        assertThat(fullyPaid.remainingAmount()).isEqualByComparingTo("0.000");
+        assertThat(unpaid.paidAmount()).isEqualByComparingTo("0.000");
+        assertThat(unpaid.remainingAmount()).isEqualByComparingTo("119.000");
+        verify(paymentRepository, times(1)).sumAmountByInvoiceIds(any());
+    }
+
+    @Test
+    void findAll_doesNotQueryThePayments_whenThePageIsEmpty() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(invoiceRepository.findAll(ArgumentMatchers.<Specification<Invoice>>any(), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        assertThat(invoiceService.findAll(null, null, null, null, pageable).content()).isEmpty();
+
+        verifyNoInteractions(paymentRepository);
+    }
+
     // ---------- zero-amount invoice ----------
 
     @Test
@@ -282,7 +385,11 @@ class InvoiceServiceTest {
         when(invoiceRepository.saveAndFlush(any(Invoice.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(invoiceService.cancel(9L).status()).isEqualTo("CANCELLED");
+        InvoiceResponse response = invoiceService.cancel(9L);
+
+        assertThat(response.status()).isEqualTo("CANCELLED");
+        assertThat(response.paidAmount()).isEqualByComparingTo("0.000");
+        assertThat(response.remainingAmount()).isEqualByComparingTo("0.000");
     }
 
     @Test
