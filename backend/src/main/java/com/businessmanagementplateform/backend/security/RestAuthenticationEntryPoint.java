@@ -1,5 +1,6 @@
 package com.businessmanagementplateform.backend.security;
 
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +19,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          AuthenticationException authException) throws IOException {
         response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
         SecurityErrorResponseWriter.write(request, response, HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHENTICATED,
                 "Authentication required: missing, invalid or expired token");
     }
 }

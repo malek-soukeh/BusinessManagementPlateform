@@ -1,5 +1,6 @@
 package com.businessmanagementplateform.backend.security;
 
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -9,20 +10,21 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
-/** Writes security errors (401/403) with the same JSON shape as the other API errors. */
+/** Writes security errors (401/403) with the same JSON shape as the other API errors (see ApiError). */
 final class SecurityErrorResponseWriter {
 
     private SecurityErrorResponseWriter() {
     }
 
     static void write(HttpServletRequest request, HttpServletResponse response,
-                      HttpStatus status, String message) throws IOException {
+                      HttpStatus status, ErrorCode code, String message) throws IOException {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.getWriter().write(String.format(
-                "{\"timestamp\":\"%s\",\"status\":%d,\"error\":\"%s\",\"message\":\"%s\",\"path\":\"%s\"}",
-                Instant.now(), status.value(), escape(status.getReasonPhrase()),
+                "{\"timestamp\":\"%s\",\"status\":%d,\"error\":\"%s\",\"code\":\"%s\","
+                        + "\"message\":\"%s\",\"path\":\"%s\"}",
+                Instant.now(), status.value(), status.name(), code.name(),
                 escape(message), escape(request.getRequestURI())));
     }
 

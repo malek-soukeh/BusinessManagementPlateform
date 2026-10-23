@@ -1,0 +1,61 @@
+package com.businessmanagementplateform.backend.exception;
+
+/**
+ * Stable, machine-readable identifier of an API error (field {@code code} of the JSON error).
+ * The English {@code message} is meant for developers and may be reworded: clients rely on the code.
+ * A code is never renamed once it is published.
+ */
+public enum ErrorCode {
+
+    // ----- Generic -----
+    VALIDATION_FAILED,
+    MALFORMED_REQUEST,
+    INVALID_PARAMETER,
+    UNAUTHENTICATED,
+    INVALID_CREDENTIALS,
+    ACCESS_DENIED,
+    RESOURCE_NOT_FOUND,
+    /** A conflict that has no more specific code. */
+    CONFLICT,
+    CONCURRENT_MODIFICATION,
+    DATA_INTEGRITY_VIOLATION,
+
+    // ----- Customers, users, products -----
+    EMAIL_ALREADY_USED,
+    TAX_NUMBER_ALREADY_USED,
+    REFERENCE_ALREADY_USED,
+    CUSTOMER_INACTIVE,
+    PRODUCT_INACTIVE,
+    INSUFFICIENT_STOCK,
+
+    // ----- Categories -----
+    CATEGORY_NAME_ALREADY_USED,
+    CATEGORY_HAS_SUBCATEGORIES,
+    CATEGORY_USED_BY_PRODUCTS,
+    CATEGORY_IN_USE,
+    PARENT_CATEGORY_NOT_FOUND,
+    CATEGORY_CYCLE,
+
+    // ----- Orders -----
+    DUPLICATE_ORDER_PRODUCT,
+    ORDER_NOT_MODIFIABLE,
+    INVALID_ORDER_TRANSITION,
+    ORDER_HAS_ACTIVE_INVOICE,
+
+    // ----- Invoices and payments -----
+    ORDER_NOT_INVOICEABLE,
+    ORDER_ALREADY_INVOICED,
+    DISCOUNT_EXCEEDS_TOTAL,
+    DUE_DATE_BEFORE_ISSUE_DATE,
+    INVOICE_NOT_CANCELLABLE,
+    INVOICE_HAS_PAYMENTS,
+    INVOICE_NOT_PAYABLE,
+    PAYMENT_EXCEEDS_REMAINING,
+
+    // ----- Users -----
+    CANNOT_CHANGE_OWN_EMAIL,
+    CANNOT_CHANGE_OWN_ROLE,
+    CANNOT_DEACTIVATE_OWN_ACCOUNT,
+    CANNOT_DELETE_OWN_ACCOUNT,
+    USER_HAS_RECORDS
+}

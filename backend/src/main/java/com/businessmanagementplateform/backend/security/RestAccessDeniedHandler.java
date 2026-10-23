@@ -1,5 +1,6 @@
 package com.businessmanagementplateform.backend.security;
 
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {
         SecurityErrorResponseWriter.write(request, response, HttpStatus.FORBIDDEN,
+                ErrorCode.ACCESS_DENIED,
                 "Access denied: insufficient permissions");
     }
 }
