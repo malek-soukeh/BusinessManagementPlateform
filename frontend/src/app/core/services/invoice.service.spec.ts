@@ -10,7 +10,7 @@ describe('InvoiceService', () => {
   const summary = (id: number, orderId: number): InvoiceSummary => ({
     id, invoiceNumber: `INV-2026-0000${id}`, orderId, orderNumber: `ORD-2026-0000${orderId}`, customerId: 3,
     customerName: 'Sami Trabelsi', issueDate: '2026-10-01', dueDate: '2026-10-31', totalAmount: 119,
-    status: 'ISSUED', paymentStatus: 'UNPAID'
+    paidAmount: 0, remainingAmount: 0, status: 'ISSUED', paymentStatus: 'UNPAID'
   });
 
   let service: InvoiceService;

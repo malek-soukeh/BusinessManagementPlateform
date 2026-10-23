@@ -49,7 +49,7 @@ describe('DashboardComponent', () => {
     id: 7, orderNumber: 'ORD-2026-00007', customerId: 1, customerName: 'Sami Trabelsi',
     orderDate: '2026-10-18T09:30:00Z', status: 'CONFIRMED', totalAmount: 1250.5, createdBy: 'manager@techdistrib.tn'
   };
-  const invoice: InvoiceSummary = {
+  const invoice: InvoiceSummary = { paidAmount: 0, remainingAmount: 0,
     id: 3, invoiceNumber: 'INV-2026-00003', orderId: 7, orderNumber: 'ORD-2026-00007', customerId: 1,
     customerName: 'Sami Trabelsi', issueDate: isoDaysAgo(40), dueDate: isoDaysAgo(10), totalAmount: 1488.095,
     status: 'OVERDUE', paymentStatus: 'UNPAID'

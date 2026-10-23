@@ -25,7 +25,8 @@ describe('InvoiceDetailComponent', () => {
   const invoice = (changes: Partial<Invoice> = {}): Invoice => ({
     id: 4, invoiceNumber: 'INV-2026-00004', orderId: 7, orderNumber: 'ORD-2026-00007', customerId: 3,
     customerName: 'Sami Trabelsi', issueDate: '2026-10-01', dueDate: '2099-10-31',
-    subtotal: 1000, discount: 100, taxAmount: 171, totalAmount: 1071, status: 'ISSUED', paymentStatus: 'UNPAID',
+    subtotal: 1000, discount: 100, taxAmount: 171, totalAmount: 1071, paidAmount: 0, remainingAmount: 1071,
+    status: 'ISSUED', paymentStatus: 'UNPAID',
     createdAt: '2026-10-01T10:00:00Z', updatedAt: '2026-10-01T10:00:00Z',
     items: [{ id: 1, productId: 4, productReference: 'LAP-001', productName: 'Portable Pro', quantity: 1, unitPrice: 1000, subtotal: 1000 }],
     ...changes
@@ -97,7 +98,7 @@ describe('InvoiceDetailComponent', () => {
   });
 
   it('lets a manager cancel an unpaid invoice after a destructive confirmation', () => {
-    service.cancel.and.returnValue(of(invoice({ status: 'CANCELLED' })));
+    service.cancel.and.returnValue(of(invoice({ status: 'CANCELLED', remainingAmount: 0 })));
     const fixture = create('MANAGER');
 
     (fixture.nativeElement.querySelector('#cancel-button') as HTMLButtonElement).click();
@@ -172,13 +173,36 @@ describe('InvoiceDetailComponent', () => {
 
     it('lists the payments with what is paid and what is left', () => {
       payments.list.and.returnValue(of([payment(2, 300), payment(1, 200.5)]));
-      service.get.and.returnValue(of(invoice({ paymentStatus: 'PARTIALLY_PAID' })));
+      service.get.and.returnValue(of(invoice({
+        paymentStatus: 'PARTIALLY_PAID', paidAmount: 500.5, remainingAmount: 570.5
+      })));
       const fixture = create();
 
       expect(payments.list).toHaveBeenCalledWith(4);
       expect(fixture.nativeElement.querySelectorAll('.payments .compact-row').length).toBe(2);
       expect(fixture.nativeElement.querySelector('.payments').textContent).toContain('Virement');
       expect(amounts(fixture)).toEqual({ paid: '500,500 TND', remaining: '570,500 TND' });
+    });
+
+    it('reads what is paid and what is left from the API, not from the payments list', () => {
+      payments.list.and.returnValue(of([payment(1, 999)]));
+      service.get.and.returnValue(of(invoice({
+        paymentStatus: 'PARTIALLY_PAID', paidAmount: 100, remainingAmount: 971
+      })));
+      const fixture = create();
+
+      expect(amounts(fixture)).toEqual({ paid: '100,000 TND', remaining: '971,000 TND' });
+    });
+
+    it('still shows the balance when the payments cannot be loaded', () => {
+      payments.list.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+      service.get.and.returnValue(of(invoice({
+        paymentStatus: 'PARTIALLY_PAID', paidAmount: 100, remainingAmount: 971
+      })));
+      const fixture = create();
+
+      expect(amounts(fixture)).toEqual({ paid: '100,000 TND', remaining: '971,000 TND' });
+      expect(fixture.nativeElement.querySelector('.payments .error-line')).not.toBeNull();
     });
 
     it('says when no payment was received', () => {
@@ -210,18 +234,26 @@ describe('InvoiceDetailComponent', () => {
     });
 
     it('offers no payment on a paid or cancelled invoice, nor to an employee', () => {
-      service.get.and.returnValue(of(invoice({ status: 'PAID', paymentStatus: 'PAID' })));
+      service.get.and.returnValue(of(invoice({
+        status: 'PAID', paymentStatus: 'PAID', paidAmount: 1071, remainingAmount: 0
+      })));
       payments.list.and.returnValue(of([payment(1, 1071)]));
       expect(create('MANAGER').nativeElement.querySelector('#pay-button')).toBeNull();
 
       TestBed.resetTestingModule();
-      service.get.and.returnValue(of(invoice({ status: 'CANCELLED' })));
+      service.get.and.returnValue(of(invoice({ status: 'CANCELLED', remainingAmount: 0 })));
       payments.list.and.returnValue(of([]));
       expect(create('MANAGER').nativeElement.querySelector('#pay-button')).toBeNull();
 
       TestBed.resetTestingModule();
       service.get.and.returnValue(of(invoice()));
       expect(create('EMPLOYEE').nativeElement.querySelector('#pay-button')).toBeNull();
+    });
+
+    it('offers no payment when nothing is left to pay', () => {
+      service.get.and.returnValue(of(invoice({ paymentStatus: 'PAID', paidAmount: 1071, remainingAmount: 0 })));
+
+      expect(create('MANAGER').nativeElement.querySelector('#pay-button')).toBeNull();
     });
 
     it('shows the error of the payments and reloads them on demand', () => {

@@ -57,6 +57,10 @@ export interface InvoiceSummary {
   dueDate: string;
   /** Total including tax. */
   totalAmount: number;
+  /** Sum of the payments received, computed by the API. */
+  paidAmount: number;
+  /** What is left to pay: never negative, 0 on a cancelled invoice (computed by the API). */
+  remainingAmount: number;
   status: InvoiceStatus;
   paymentStatus: PaymentStatus;
 }

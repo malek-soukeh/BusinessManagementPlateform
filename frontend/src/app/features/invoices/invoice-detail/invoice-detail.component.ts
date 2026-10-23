@@ -11,7 +11,7 @@ import {
   PaymentStatus, canCancelInvoice, daysOverdue
 } from '../../../core/models/invoice.models';
 import {
-  PAYMENT_METHOD_ICONS, PAYMENT_METHOD_LABELS, Payment, PaymentMethod, paidAmount, remainingAmount
+  PAYMENT_METHOD_ICONS, PAYMENT_METHOD_LABELS, Payment, PaymentMethod
 } from '../../../core/models/payment.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { InvoiceService } from '../../../core/services/invoice.service';
@@ -62,12 +62,13 @@ export class InvoiceDetailComponent implements OnInit {
       && (this.invoice?.status === 'ISSUED' || this.invoice?.status === 'OVERDUE');
   }
 
+   /** Paid and remaining amounts are computed by the API (never negative, 0 on a cancelled invoice). */
   get paid(): number {
-    return paidAmount(this.payments);
+    return this.invoice?.paidAmount ?? 0;
   }
 
   get remaining(): number {
-    return this.invoice ? remainingAmount(this.invoice.totalAmount, this.payments) : 0;
+    return this.invoice?.remainingAmount ?? 0;
   }
 
   /** Share of the invoice already paid, in percent. */

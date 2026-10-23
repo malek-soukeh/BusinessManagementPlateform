@@ -130,7 +130,7 @@
         <span class="muted" *ngIf="!paymentsLoading">{{ payments.length }} paiement(s)</span>
       </div>
 
-      <div class="balance" *ngIf="!paymentsLoading && !paymentsError">
+      <div class="balance">
         <div><span class="info-label">Payé</span><strong class="paid">{{ paid | number: '1.3-3' }} TND</strong></div>
         <div><span class="info-label">Reste à payer</span><strong class="remaining">{{ remaining | number: '1.3-3' }} TND</strong></div>
         <mat-progress-bar

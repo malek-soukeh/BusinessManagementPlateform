@@ -28,7 +28,7 @@ describe('InvoiceListComponent', () => {
   const invoice = (id: number, changes: Partial<InvoiceSummary> = {}): InvoiceSummary => ({
     id, invoiceNumber: `INV-2026-0000${id}`, orderId: id, orderNumber: `ORD-2026-0000${id}`, customerId: 3,
     customerName: 'Sami Trabelsi', issueDate: '2026-10-01', dueDate: '2026-10-31', totalAmount: 1488.095,
-    status: 'ISSUED', paymentStatus: 'UNPAID', ...changes
+    paidAmount: 0, remainingAmount: 0, status: 'ISSUED', paymentStatus: 'UNPAID', ...changes
   });
   const page = (invoices: InvoiceSummary[]): Page<InvoiceSummary> => ({
     content: invoices, page: 0, size: 10, totalElements: invoices.length, totalPages: 1

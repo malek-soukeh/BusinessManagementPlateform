@@ -203,7 +203,7 @@ describe('OrderDetailComponent', () => {
   });
 
   it('links the invoice of the order instead', () => {
-    const invoice: InvoiceSummary = {
+    const invoice: InvoiceSummary = { paidAmount: 0, remainingAmount: 0,
       id: 4, invoiceNumber: 'INV-2026-00004', orderId: 7, orderNumber: 'ORD-2026-00007', customerId: 3,
       customerName: 'Sami Trabelsi', issueDate: '2026-10-19', dueDate: '2026-11-18', totalAmount: 5117,
       status: 'ISSUED', paymentStatus: 'UNPAID'
