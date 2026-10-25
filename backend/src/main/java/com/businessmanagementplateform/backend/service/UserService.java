@@ -10,6 +10,7 @@ import com.businessmanagementplateform.backend.entity.User;
 import com.businessmanagementplateform.backend.enums.RoleType;
 import com.businessmanagementplateform.backend.enums.UserStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.UserMapper;
 import com.businessmanagementplateform.backend.repository.RoleRepository;
@@ -34,7 +35,7 @@ public class UserService {
     public UserResponse create(CreateUserRequest request) {
         String email = request.email().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
-            throw new ConflictException("Email already in use: " + email);
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_USED, "Email already in use: " + email);
         }
 
         Role role = findRole(request.role());
@@ -68,14 +69,14 @@ public class UserService {
         String email = request.email().trim().toLowerCase();
 
         if (userRepository.existsByEmailAndIdNot(email, id)) {
-            throw new ConflictException("Email already in use: " + email);
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_USED, "Email already in use: " + email);
         }
         if (isSelf(user, currentEmail)) {
             if (!user.getEmail().equalsIgnoreCase(email)) {
-                throw new ConflictException("You cannot change your own email");
+                throw new ConflictException(ErrorCode.CANNOT_CHANGE_OWN_EMAIL, "You cannot change your own email");
             }
             if (user.getRole().getName() != request.role()) {
-                throw new ConflictException("You cannot change your own role");
+                throw new ConflictException(ErrorCode.CANNOT_CHANGE_OWN_ROLE, "You cannot change your own role");
             }
         }
 
@@ -93,7 +94,7 @@ public class UserService {
         User user = getUser(id);
 
         if (isSelf(user, currentEmail) && request.status() != UserStatus.ACTIVE) {
-            throw new ConflictException("You cannot deactivate your own account");
+            throw new ConflictException(ErrorCode.CANNOT_DEACTIVATE_OWN_ACCOUNT, "You cannot deactivate your own account");
         }
 
         user.setStatus(request.status());
@@ -105,14 +106,14 @@ public class UserService {
         User user = getUser(id);
 
         if (isSelf(user, currentEmail)) {
-            throw new ConflictException("You cannot delete your own account");
+            throw new ConflictException(ErrorCode.CANNOT_DELETE_OWN_ACCOUNT, "You cannot delete your own account");
         }
 
         try {
             userRepository.delete(user);
             userRepository.flush();
         } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.USER_HAS_RECORDS,
                     "User is linked to existing records and cannot be deleted: deactivate it instead");
         }
     }

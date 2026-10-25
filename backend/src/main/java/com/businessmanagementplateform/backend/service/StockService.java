@@ -8,6 +8,7 @@ import com.businessmanagementplateform.backend.entity.StockMovement;
 import com.businessmanagementplateform.backend.entity.User;
 import com.businessmanagementplateform.backend.enums.StockMovementReason;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.StockMovementMapper;
 import com.businessmanagementplateform.backend.repository.ProductRepository;
@@ -36,7 +37,7 @@ public class StockService {
 
         int newQuantity = product.getQuantity() + request.quantityChange();
         if (newQuantity < 0) {
-            throw new ConflictException("Insufficient stock: available " + product.getQuantity()
+            throw new ConflictException(ErrorCode.INSUFFICIENT_STOCK, "Insufficient stock: available " + product.getQuantity()
                     + ", requested change " + request.quantityChange());
         }
 
@@ -78,7 +79,7 @@ public class StockService {
                                    Long orderId, String note, User user) {
         int newQuantity = product.getQuantity() + quantityChange;
         if (newQuantity < 0) {
-            throw new ConflictException("Insufficient stock for " + product.getReference()
+            throw new ConflictException(ErrorCode.INSUFFICIENT_STOCK, "Insufficient stock for " + product.getReference()
                     + ": available " + product.getQuantity() + ", requested " + (-quantityChange));
         }
 

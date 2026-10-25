@@ -10,6 +10,7 @@ import com.businessmanagementplateform.backend.enums.InvoiceStatus;
 import com.businessmanagementplateform.backend.enums.OrderStatus;
 import com.businessmanagementplateform.backend.enums.PaymentStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.InvoiceMapper;
 import com.businessmanagementplateform.backend.repository.InvoicePaidAmount;
@@ -70,11 +71,11 @@ public class InvoiceService {
                         "Order not found with id " + request.orderId()));
 
         if (!INVOICEABLE_STATUSES.contains(order.getStatus())) {
-            throw new ConflictException("Cannot invoice an order with status " + order.getStatus()
+            throw new ConflictException(ErrorCode.ORDER_NOT_INVOICEABLE, "Cannot invoice an order with status " + order.getStatus()
                     + ": it must be CONFIRMED, SHIPPED or DELIVERED");
         }
         if (invoiceRepository.existsByOrderId(order.getId())) {
-            throw new ConflictException("Order already invoiced: " + order.getOrderNumber());
+            throw new ConflictException(ErrorCode.ORDER_ALREADY_INVOICED, "Order already invoiced: " + order.getOrderNumber());
         }
 
         BigDecimal subtotal = order.getTotalAmount().setScale(3, RoundingMode.HALF_UP);
@@ -82,7 +83,7 @@ public class InvoiceService {
                 ? BigDecimal.ZERO.setScale(3)
                 : request.discount().setScale(3, RoundingMode.HALF_UP);
         if (discount.compareTo(subtotal) > 0) {
-            throw new ConflictException("Discount cannot exceed the order total: " + subtotal);
+            throw new ConflictException(ErrorCode.DISCOUNT_EXCEEDS_TOTAL, "Discount cannot exceed the order total: " + subtotal);
         }
 
         LocalDate issueDate = LocalDate.now(clock);
@@ -90,7 +91,7 @@ public class InvoiceService {
                 ? request.dueDate()
                 : issueDate.plusDays(paymentTermsDays);
         if (dueDate.isBefore(issueDate)) {
-            throw new ConflictException("Due date cannot be before the issue date: " + issueDate);
+            throw new ConflictException(ErrorCode.DUE_DATE_BEFORE_ISSUE_DATE, "Due date cannot be before the issue date: " + issueDate);
         }
 
         BigDecimal taxable = subtotal.subtract(discount);
@@ -150,10 +151,10 @@ public class InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id " + id));
 
         if (invoice.getStatus() != InvoiceStatus.ISSUED && invoice.getStatus() != InvoiceStatus.OVERDUE) {
-            throw new ConflictException("Cannot cancel an invoice with status " + invoice.getStatus());
+            throw new ConflictException(ErrorCode.INVOICE_NOT_CANCELLABLE, "Cannot cancel an invoice with status " + invoice.getStatus());
         }
         if (invoice.getPaymentStatus() != PaymentStatus.UNPAID) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.INVOICE_HAS_PAYMENTS,
                     "Cannot cancel an invoice that already has payments: " + invoice.getInvoiceNumber());
         }
 

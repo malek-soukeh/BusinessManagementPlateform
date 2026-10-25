@@ -8,6 +8,7 @@ import com.businessmanagementplateform.backend.entity.User;
 import com.businessmanagementplateform.backend.enums.InvoiceStatus;
 import com.businessmanagementplateform.backend.enums.PaymentStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.PaymentMapper;
 import com.businessmanagementplateform.backend.repository.InvoiceRepository;
@@ -44,14 +45,14 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id " + invoiceId));
 
         if (!PAYABLE_STATUSES.contains(invoice.getStatus())) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.INVOICE_NOT_PAYABLE,
                     "Cannot register a payment on an invoice with status " + invoice.getStatus());
         }
 
         BigDecimal amount = request.amount().setScale(3, RoundingMode.HALF_UP);
         BigDecimal remaining = invoice.getTotalAmount().subtract(paidAmount(invoiceId));
         if (amount.compareTo(remaining) > 0) {
-            throw new ConflictException("Payment exceeds the remaining balance: " + remaining
+            throw new ConflictException(ErrorCode.PAYMENT_EXCEEDS_REMAINING, "Payment exceeds the remaining balance: " + remaining
                     + " left on invoice " + invoice.getInvoiceNumber());
         }
 

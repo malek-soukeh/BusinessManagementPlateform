@@ -15,6 +15,7 @@ import com.businessmanagementplateform.backend.enums.OrderStatus;
 import com.businessmanagementplateform.backend.enums.ProductStatus;
 import com.businessmanagementplateform.backend.enums.StockMovementReason;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.OrderMapper;
 import com.businessmanagementplateform.backend.repository.CustomerRepository;
@@ -79,7 +80,7 @@ public class OrderService {
     public OrderResponse update(Long id, CreateOrderRequest request) {
         Order order = getOrderForUpdate(id);
         if (order.getStatus() != OrderStatus.PENDING) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.ORDER_NOT_MODIFIABLE,
                     "Only PENDING orders can be modified, current status: " + order.getStatus());
         }
 
@@ -101,7 +102,7 @@ public class OrderService {
         OrderStatus current = order.getStatus();
 
         if (!ALLOWED_TRANSITIONS.getOrDefault(current, Set.of()).contains(newStatus)) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.INVALID_ORDER_TRANSITION,
                     "Cannot change order status from " + current + " to " + newStatus);
         }
 
@@ -109,7 +110,7 @@ public class OrderService {
             moveStock(order, userEmail, -1, StockMovementReason.ORDER_CONFIRMED);
         } else if (newStatus == OrderStatus.CANCELLED && current == OrderStatus.CONFIRMED) {
             if (invoiceRepository.existsByOrderIdAndStatusNot(order.getId(), InvoiceStatus.CANCELLED)) {
-                throw new ConflictException("Cannot cancel order " + order.getOrderNumber()
+                throw new ConflictException(ErrorCode.ORDER_HAS_ACTIVE_INVOICE, "Cannot cancel order " + order.getOrderNumber()
                         + ": it has an active invoice, cancel the invoice first");
             }
             moveStock(order, userEmail, 1, StockMovementReason.ORDER_CANCELLED);
@@ -144,7 +145,7 @@ public class OrderService {
         Set<Long> productIds = new HashSet<>();
         for (OrderItemRequest item : requested) {
             if (!productIds.add(item.productId())) {
-                throw new ConflictException(
+                throw new ConflictException(ErrorCode.DUPLICATE_ORDER_PRODUCT,
                         "Product appears more than once in the order: " + item.productId());
             }
         }
@@ -155,10 +156,10 @@ public class OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Product not found with id " + item.productId()));
             if (product.getStatus() != ProductStatus.ACTIVE) {
-                throw new ConflictException("Product is inactive: " + product.getReference());
+                throw new ConflictException(ErrorCode.PRODUCT_INACTIVE, "Product is inactive: " + product.getReference());
             }
             if (item.quantity() > product.getQuantity()) {
-                throw new ConflictException("Insufficient stock for " + product.getReference()
+                throw new ConflictException(ErrorCode.INSUFFICIENT_STOCK, "Insufficient stock for " + product.getReference()
                         + ": available " + product.getQuantity() + ", requested " + item.quantity());
             }
 
@@ -210,7 +211,7 @@ public class OrderService {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id " + id));
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
-            throw new ConflictException("Customer is inactive: " + customer.getId());
+            throw new ConflictException(ErrorCode.CUSTOMER_INACTIVE, "Customer is inactive: " + customer.getId());
         }
         return customer;
     }

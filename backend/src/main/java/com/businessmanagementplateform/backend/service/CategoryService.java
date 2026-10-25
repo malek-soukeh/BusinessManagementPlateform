@@ -4,6 +4,7 @@ import com.businessmanagementplateform.backend.dto.CategoryRequest;
 import com.businessmanagementplateform.backend.dto.CategoryResponse;
 import com.businessmanagementplateform.backend.entity.Category;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.CategoryMapper;
 import com.businessmanagementplateform.backend.repository.CategoryRepository;
@@ -28,7 +29,7 @@ public class CategoryService {
     public CategoryResponse create(CategoryRequest request) {
         String name = request.name().trim();
         if (categoryRepository.existsByNameIgnoreCase(name)) {
-            throw new ConflictException("Category name already in use: " + name);
+            throw new ConflictException(ErrorCode.CATEGORY_NAME_ALREADY_USED, "Category name already in use: " + name);
         }
 
         Category category = Category.builder()
@@ -58,7 +59,7 @@ public class CategoryService {
         String name = request.name().trim();
 
         if (categoryRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
-            throw new ConflictException("Category name already in use: " + name);
+            throw new ConflictException(ErrorCode.CATEGORY_NAME_ALREADY_USED, "Category name already in use: " + name);
         }
 
         Category parent = findParent(request.parentId());
@@ -76,17 +77,17 @@ public class CategoryService {
         Category category = getCategory(id);
 
         if (categoryRepository.existsByParentId(id)) {
-            throw new ConflictException("Category has sub-categories and cannot be deleted");
+            throw new ConflictException(ErrorCode.CATEGORY_HAS_SUBCATEGORIES, "Category has sub-categories and cannot be deleted");
         }
         if (productRepository.existsByCategoryId(id)) {
-            throw new ConflictException("Category is used by products and cannot be deleted");
+            throw new ConflictException(ErrorCode.CATEGORY_USED_BY_PRODUCTS, "Category is used by products and cannot be deleted");
         }
 
         try {
             categoryRepository.delete(category);
             categoryRepository.flush();
         } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException("Category is in use and cannot be deleted");
+            throw new ConflictException(ErrorCode.CATEGORY_IN_USE, "Category is in use and cannot be deleted");
         }
     }
 
@@ -100,7 +101,7 @@ public class CategoryService {
             return null;
         }
         return categoryRepository.findById(parentId)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PARENT_CATEGORY_NOT_FOUND,
                         "Parent category not found with id " + parentId));
     }
 
@@ -108,7 +109,7 @@ public class CategoryService {
         Category current = newParent;
         while (current != null) {
             if (current.getId().equals(category.getId())) {
-                throw new ConflictException(
+                throw new ConflictException(ErrorCode.CATEGORY_CYCLE,
                         "A category cannot be its own parent or a descendant of itself");
             }
             current = current.getParent();

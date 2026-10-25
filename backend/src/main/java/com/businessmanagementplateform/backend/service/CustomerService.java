@@ -7,6 +7,7 @@ import com.businessmanagementplateform.backend.dto.UpdateCustomerRequest;
 import com.businessmanagementplateform.backend.entity.Customer;
 import com.businessmanagementplateform.backend.enums.CustomerStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.CustomerMapper;
 import com.businessmanagementplateform.backend.repository.CustomerRepository;
@@ -29,10 +30,10 @@ public class CustomerService {
         String taxNumber = clean(request.taxNumber());
 
         if (customerRepository.existsByEmail(email)) {
-            throw new ConflictException("Email already in use: " + email);
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_USED, "Email already in use: " + email);
         }
         if (taxNumber != null && customerRepository.existsByTaxNumber(taxNumber)) {
-            throw new ConflictException("Tax number already in use: " + taxNumber);
+            throw new ConflictException(ErrorCode.TAX_NUMBER_ALREADY_USED, "Tax number already in use: " + taxNumber);
         }
 
         Customer customer = Customer.builder()
@@ -68,10 +69,10 @@ public class CustomerService {
         String taxNumber = clean(request.taxNumber());
 
         if (customerRepository.existsByEmailAndIdNot(email, id)) {
-            throw new ConflictException("Email already in use: " + email);
+            throw new ConflictException(ErrorCode.EMAIL_ALREADY_USED, "Email already in use: " + email);
         }
         if (taxNumber != null && customerRepository.existsByTaxNumberAndIdNot(taxNumber, id)) {
-            throw new ConflictException("Tax number already in use: " + taxNumber);
+            throw new ConflictException(ErrorCode.TAX_NUMBER_ALREADY_USED, "Tax number already in use: " + taxNumber);
         }
 
         customer.setFirstName(request.firstName().trim());

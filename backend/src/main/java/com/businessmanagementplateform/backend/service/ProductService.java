@@ -8,6 +8,7 @@ import com.businessmanagementplateform.backend.entity.Category;
 import com.businessmanagementplateform.backend.entity.Product;
 import com.businessmanagementplateform.backend.enums.ProductStatus;
 import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.ProductMapper;
 import com.businessmanagementplateform.backend.repository.CategoryRepository;
@@ -36,7 +37,7 @@ public class ProductService {
     public ProductResponse create(CreateProductRequest request, String userEmail) {
         String reference = normalizeReference(request.reference());
         if (productRepository.existsByReference(reference)) {
-            throw new ConflictException("Reference already in use: " + reference);
+            throw new ConflictException(ErrorCode.REFERENCE_ALREADY_USED, "Reference already in use: " + reference);
         }
 
         Product product = Product.builder()
@@ -74,13 +75,13 @@ public class ProductService {
         Product product = getProduct(id);
 
         if (!product.getVersion().equals(request.version())) {
-            throw new ConflictException(
+            throw new ConflictException(ErrorCode.CONCURRENT_MODIFICATION,
                     "Product was modified by someone else: reload it and try again");
         }
 
         String reference = normalizeReference(request.reference());
         if (productRepository.existsByReferenceAndIdNot(reference, id)) {
-            throw new ConflictException("Reference already in use: " + reference);
+            throw new ConflictException(ErrorCode.REFERENCE_ALREADY_USED, "Reference already in use: " + reference);
         }
 
         product.setReference(reference);
