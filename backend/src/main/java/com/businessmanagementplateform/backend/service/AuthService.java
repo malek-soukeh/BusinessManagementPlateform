@@ -1,15 +1,19 @@
 package com.businessmanagementplateform.backend.service;
 
+import com.businessmanagementplateform.backend.dto.ChangePasswordRequest;
 import com.businessmanagementplateform.backend.dto.LoginRequest;
 import com.businessmanagementplateform.backend.dto.LoginResponse;
 import com.businessmanagementplateform.backend.dto.UserProfileResponse;
 import com.businessmanagementplateform.backend.entity.User;
+import com.businessmanagementplateform.backend.exception.ConflictException;
+import com.businessmanagementplateform.backend.exception.ErrorCode;
 import com.businessmanagementplateform.backend.repository.UserRepository;
 import com.businessmanagementplateform.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +24,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
@@ -49,5 +54,27 @@ public class AuthService {
                 user.getPhone(),
                 user.getRole().getName().name(),
                 user.getStatus().name());
+    }
+
+    /**
+     * Changes the password of the logged-in user. The current password is asked again so that a stolen
+     * token alone is not enough to take the account over. Refusals are 409 (a business rule), never 401:
+     * the frontend would take a 401 for an expired session and log the user out.
+     */
+    @Transactional
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new ConflictException(ErrorCode.INVALID_CURRENT_PASSWORD, "Current password is incorrect");
+        }
+        if (request.newPassword().equals(request.currentPassword())) {
+            throw new ConflictException(ErrorCode.NEW_PASSWORD_SAME_AS_CURRENT,
+                    "The new password must be different from the current one");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 }
