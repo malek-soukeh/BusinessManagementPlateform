@@ -15,17 +15,26 @@ import java.util.Set;
 @Component
 public class CurrentUser {
 
-    /** Roles allowed to see cost data (purchase prices, margins). */
-    private static final Set<String> COST_ROLES = Set.of("ROLE_ADMIN", "ROLE_MANAGER");
+    /** Roles of the management: they see the cost data and decide the status of the customers. */
+    private static final Set<String> MANAGEMENT_ROLES = Set.of("ROLE_ADMIN", "ROLE_MANAGER");
 
     /** Whether the current user may see the purchase prices: ADMIN and MANAGER yes, EMPLOYEE never. */
     public boolean canSeeCosts() {
+        return hasAnyAuthority(MANAGEMENT_ROLES);
+    }
+
+    /** Whether the current user may activate or deactivate a customer: ADMIN and MANAGER yes, EMPLOYEE never. */
+    public boolean canChangeCustomerStatus() {
+        return hasAnyAuthority(MANAGEMENT_ROLES);
+    }
+
+    private boolean hasAnyAuthority(Set<String> authorities) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(COST_ROLES::contains);
+                .anyMatch(authorities::contains);
     }
 }

@@ -12,8 +12,10 @@ import com.businessmanagementplateform.backend.exception.ResourceNotFoundExcepti
 import com.businessmanagementplateform.backend.mapper.CustomerMapper;
 import com.businessmanagementplateform.backend.repository.CustomerRepository;
 import com.businessmanagementplateform.backend.repository.CustomerSpecifications;
+import com.businessmanagementplateform.backend.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
+    private final CurrentUser currentUser;
 
     @Transactional
     public CustomerResponse create(CreateCustomerRequest request) {
@@ -65,6 +68,12 @@ public class CustomerService {
     @Transactional
     public CustomerResponse update(Long id, UpdateCustomerRequest request) {
         Customer customer = getCustomer(id);
+        // Deactivating or reactivating a customer is a management decision: ADMIN and MANAGER only.
+        // Sending the status it already has is harmless, so a client that resends the whole object is not refused.
+        if (request.status() != null && request.status() != customer.getStatus()
+                && !currentUser.canChangeCustomerStatus()) {
+            throw new AccessDeniedException("Only ADMIN and MANAGER can change the status of a customer");
+        }
         String email = request.email().trim().toLowerCase();
         String taxNumber = clean(request.taxNumber());
 

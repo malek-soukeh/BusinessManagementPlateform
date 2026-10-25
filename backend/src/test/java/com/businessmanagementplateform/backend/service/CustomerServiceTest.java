@@ -10,6 +10,7 @@ import com.businessmanagementplateform.backend.exception.ConflictException;
 import com.businessmanagementplateform.backend.exception.ResourceNotFoundException;
 import com.businessmanagementplateform.backend.mapper.CustomerMapper;
 import com.businessmanagementplateform.backend.repository.CustomerRepository;
+import com.businessmanagementplateform.backend.security.CurrentUser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,6 +41,9 @@ class CustomerServiceTest {
 
     @Mock
     private CustomerRepository customerRepository;
+
+    @Mock
+    private CurrentUser currentUser;
 
     @Spy
     private CustomerMapper customerMapper = new CustomerMapper();
@@ -180,6 +185,7 @@ class CustomerServiceTest {
         Customer inactive = customer(7L, "ahmed@email.com", null);
         inactive.setStatus(CustomerStatus.INACTIVE);
         when(customerRepository.findById(7L)).thenReturn(Optional.of(inactive));
+        when(currentUser.canChangeCustomerStatus()).thenReturn(true);
         when(customerRepository.saveAndFlush(any(Customer.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -187,6 +193,47 @@ class CustomerServiceTest {
                 7L, updateRequest("ahmed@email.com", null, CustomerStatus.ACTIVE));
 
         assertThat(response.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void update_canDeactivateACustomer_whenTheUserManagesStatuses() {
+        when(customerRepository.findById(7L))
+                .thenReturn(Optional.of(customer(7L, "ahmed@email.com", null)));
+        when(currentUser.canChangeCustomerStatus()).thenReturn(true);
+        when(customerRepository.saveAndFlush(any(Customer.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerResponse response = customerService.update(
+                7L, updateRequest("ahmed@email.com", null, CustomerStatus.INACTIVE));
+
+        assertThat(response.status()).isEqualTo("INACTIVE");
+    }
+
+    @Test
+    void update_refusesAStatusChange_whenTheUserCannotManageStatuses() {
+        Customer existing = customer(7L, "ahmed@email.com", null);
+        when(customerRepository.findById(7L)).thenReturn(Optional.of(existing));
+        when(currentUser.canChangeCustomerStatus()).thenReturn(false);
+
+        assertThatThrownBy(() -> customerService.update(
+                7L, updateRequest("ahmed@email.com", null, CustomerStatus.INACTIVE)))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThat(existing.getStatus()).isEqualTo(CustomerStatus.ACTIVE);
+        verify(customerRepository, never()).saveAndFlush(any(Customer.class));
+    }
+
+    @Test
+    void update_acceptsTheStatusTheCustomerAlreadyHas_whateverTheRole() {
+        when(customerRepository.findById(7L))
+                .thenReturn(Optional.of(customer(7L, "ahmed@email.com", null)));
+        when(customerRepository.saveAndFlush(any(Customer.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerResponse response = customerService.update(
+                7L, updateRequest("ahmed@email.com", null, CustomerStatus.ACTIVE));
+
+        assertThat(response.status()).isEqualTo("ACTIVE");
+        verify(currentUser, never()).canChangeCustomerStatus();
     }
 
     // ---------- deactivate ----------

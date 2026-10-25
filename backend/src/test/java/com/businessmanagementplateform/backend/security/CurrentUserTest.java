@@ -23,6 +23,11 @@ class CurrentUserTest {
                 "user@techdistrib.tn", null, AuthorityUtils.createAuthorityList("ROLE_" + role)));
     }
 
+    private void logInAnonymously() {
+        SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
+                "key", "anonymous", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
+    }
+
     @Test
     void administratorsAndManagersSeeTheCosts() {
         logInAs("ADMIN");
@@ -43,8 +48,31 @@ class CurrentUserTest {
     void nobodySeesTheCostsWithoutAnAuthenticatedUser() {
         assertThat(currentUser.canSeeCosts()).isFalse();
 
-        SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
-                "key", "anonymous", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
+        logInAnonymously();
         assertThat(currentUser.canSeeCosts()).isFalse();
+    }
+
+    @Test
+    void administratorsAndManagersCanChangeTheStatusOfACustomer() {
+        logInAs("ADMIN");
+        assertThat(currentUser.canChangeCustomerStatus()).isTrue();
+
+        logInAs("MANAGER");
+        assertThat(currentUser.canChangeCustomerStatus()).isTrue();
+    }
+
+    @Test
+    void employeesCannotChangeTheStatusOfACustomer() {
+        logInAs("EMPLOYEE");
+
+        assertThat(currentUser.canChangeCustomerStatus()).isFalse();
+    }
+
+    @Test
+    void nobodyCanChangeTheStatusOfACustomerWithoutAnAuthenticatedUser() {
+        assertThat(currentUser.canChangeCustomerStatus()).isFalse();
+
+        logInAnonymously();
+        assertThat(currentUser.canChangeCustomerStatus()).isFalse();
     }
 }
