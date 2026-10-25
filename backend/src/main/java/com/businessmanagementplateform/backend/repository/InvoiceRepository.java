@@ -24,8 +24,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     @Query(value = "SELECT nextval('invoice_number_seq')", nativeQuery = true)
     Long nextInvoiceSequence();
 
-    boolean existsByOrderId(Long orderId);
-
+    /** True when the order has an invoice other than the given status (an order may have several cancelled ones). */
     boolean existsByOrderIdAndStatusNot(Long orderId, InvoiceStatus status);
 
     List<Invoice> findByStatusAndDueDateBefore(InvoiceStatus status, LocalDate date);

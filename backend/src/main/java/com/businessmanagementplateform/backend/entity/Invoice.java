@@ -24,8 +24,9 @@ public class Invoice extends BaseEntity {
     @Column(name = "invoice_number", nullable = false, unique = true, length = 30)
     private String invoiceNumber;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "order_id", nullable = false, unique = true)
+    // Several invoices per order: the cancelled ones are kept, a single one stays active (partial unique index, V10).
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
     @Column(name = "issue_date", nullable = false)

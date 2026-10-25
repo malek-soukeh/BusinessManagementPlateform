@@ -74,7 +74,8 @@ public class InvoiceService {
             throw new ConflictException(ErrorCode.ORDER_NOT_INVOICEABLE, "Cannot invoice an order with status " + order.getStatus()
                     + ": it must be CONFIRMED, SHIPPED or DELIVERED");
         }
-        if (invoiceRepository.existsByOrderId(order.getId())) {
+        // A cancelled invoice does not block a new one: only an active invoice makes the order "already invoiced".
+        if (invoiceRepository.existsByOrderIdAndStatusNot(order.getId(), InvoiceStatus.CANCELLED)) {
             throw new ConflictException(ErrorCode.ORDER_ALREADY_INVOICED, "Order already invoiced: " + order.getOrderNumber());
         }
 

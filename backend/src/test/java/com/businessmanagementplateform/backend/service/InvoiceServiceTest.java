@@ -220,12 +220,25 @@ class InvoiceServiceTest {
     @Test
     void generate_throwsConflict_whenOrderIsAlreadyInvoiced() {
         givenOrder(OrderStatus.CONFIRMED, "100.000");
-        when(invoiceRepository.existsByOrderId(5L)).thenReturn(true);
+        when(invoiceRepository.existsByOrderIdAndStatusNot(5L, InvoiceStatus.CANCELLED)).thenReturn(true);
 
         assertThatThrownBy(() -> invoiceService.generate(new CreateInvoiceRequest(5L, null, null)))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Order already invoiced: ORD-2026-00005");
         verifyNothingSaved();
+    }
+
+    @Test
+    void generate_allowsANewInvoice_whenThePreviousOneWasCancelled() {
+        givenOrder(OrderStatus.CONFIRMED, "100.000");
+        givenSuccessfulSave();
+
+        InvoiceResponse response = invoiceService.generate(new CreateInvoiceRequest(5L, null, null));
+
+        assertThat(response.status()).isEqualTo("ISSUED");
+        // Only a non-cancelled invoice blocks the order: the check looks past the cancelled ones.
+        verify(invoiceRepository).existsByOrderIdAndStatusNot(5L, InvoiceStatus.CANCELLED);
+        verify(invoiceRepository).saveAndFlush(any(Invoice.class));
     }
 
     // ---------- findById / findAll ----------
