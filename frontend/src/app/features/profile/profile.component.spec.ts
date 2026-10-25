@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -16,15 +17,17 @@ describe('ProfileComponent', () => {
     role: 'MANAGER', status: 'ACTIVE'
   };
 
-  let auth: { role: Role; expiresAt: Date; me: jasmine.Spy; logout: jasmine.Spy };
+  let auth: { role: Role; expiresAt: Date; me: jasmine.Spy; logout: jasmine.Spy; changePassword: jasmine.Spy };
   let router: Router;
+  let snackBar: MatSnackBar;
 
   function create(role: Role = 'MANAGER', me = of(profile)): ComponentFixture<ProfileComponent> {
     auth = {
       role,
       expiresAt: new Date(2026, 9, 21, 15, 30),
       me: jasmine.createSpy('me').and.returnValue(me),
-      logout: jasmine.createSpy('logout')
+      logout: jasmine.createSpy('logout'),
+      changePassword: jasmine.createSpy('changePassword').and.returnValue(of(undefined))
     };
     TestBed.configureTestingModule({
       declarations: [ProfileComponent],
@@ -33,6 +36,8 @@ describe('ProfileComponent', () => {
     });
     router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.resolveTo(true);
+    snackBar = TestBed.inject(MatSnackBar);
+    spyOn(snackBar, 'open');
     const fixture = TestBed.createComponent(ProfileComponent);
     fixture.detectChanges();
     return fixture;
@@ -68,8 +73,79 @@ describe('ProfileComponent', () => {
     expect(labels('ADMIN')).not.toContain('Tableau de bord');
   });
 
-  it('explains that the profile is changed by an administrator', () => {
+  it('explains that the other data is changed by an administrator', () => {
     expect(text(create())).toContain('contactez un administrateur');
+  });
+
+  describe('password change', () => {
+    const fill = (fixture: ComponentFixture<ProfileComponent>, current: string, next: string, confirm = next) => {
+      fixture.componentInstance.passwordForm.setValue({
+        currentPassword: current, newPassword: next, confirmPassword: confirm
+      });
+      fixture.detectChanges();
+    };
+
+    it('refuses an empty form and a confirmation that differs', () => {
+      const fixture = create();
+
+      fixture.componentInstance.changePassword();
+      expect(auth.changePassword).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.passwordForm.controls.currentPassword.hasError('required')).toBeTrue();
+
+      fill(fixture, 'Old@1234', 'New@12345', 'Other@123');
+      fixture.componentInstance.changePassword();
+
+      expect(fixture.componentInstance.passwordForm.controls.confirmPassword.hasError('mismatch')).toBeTrue();
+      expect(auth.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('refuses a new password that is too short or equal to the current one', () => {
+      const fixture = create();
+
+      fill(fixture, 'Old@1234', 'abc');
+      expect(fixture.componentInstance.passwordForm.controls.newPassword.hasError('minlength')).toBeTrue();
+
+      fill(fixture, 'Same@1234', 'Same@1234');
+      expect(fixture.componentInstance.passwordForm.controls.newPassword.hasError('sameAsCurrent')).toBeTrue();
+    });
+
+    it('changes the password, empties the form and confirms', () => {
+      const fixture = create();
+      fill(fixture, 'Old@1234', 'New@12345');
+
+      fixture.componentInstance.changePassword();
+
+      expect(auth.changePassword).toHaveBeenCalledWith({ currentPassword: 'Old@1234', newPassword: 'New@12345' });
+      expect(snackBar.open).toHaveBeenCalledWith('Mot de passe modifié.', 'OK', { duration: 4000 });
+      expect(fixture.componentInstance.passwordForm.getRawValue())
+        .toEqual({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    });
+
+    it('shows a wrong current password under its field', () => {
+      const fixture = create();
+      auth.changePassword.and.returnValue(throwError(() => new HttpErrorResponse({
+        status: 409, error: { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' }
+      })));
+      fill(fixture, 'Wrong@123', 'New@12345');
+
+      fixture.componentInstance.changePassword();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.passwordForm.controls.currentPassword.hasError('incorrect')).toBeTrue();
+      expect(text(fixture)).toContain('Mot de passe actuel incorrect');
+      expect(snackBar.open).not.toHaveBeenCalled();
+    });
+
+    it('shows any other error above the button', () => {
+      const fixture = create();
+      auth.changePassword.and.returnValue(throwError(() => new HttpErrorResponse({ status: 0 })));
+      fill(fixture, 'Old@1234', 'New@12345');
+
+      fixture.componentInstance.changePassword();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.password-error').textContent).toContain('Serveur injoignable');
+    });
   });
 
   it('logs out', () => {

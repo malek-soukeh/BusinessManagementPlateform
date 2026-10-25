@@ -127,7 +127,12 @@ const RULES: Rule[] = [
   ['CANNOT_DELETE_OWN_ACCOUNT', /^You cannot delete your own account$/,
     () => 'Vous ne pouvez pas supprimer votre propre compte.'],
   ['USER_HAS_RECORDS', /^User is linked to existing records/,
-    () => 'Cet utilisateur est lié à des enregistrements : désactivez-le plutôt.']
+    () => 'Cet utilisateur est lié à des enregistrements : désactivez-le plutôt.'],
+
+  // Password change
+  ['INVALID_CURRENT_PASSWORD', /^Current password is incorrect/, () => 'Le mot de passe actuel est incorrect.'],
+  ['NEW_PASSWORD_SAME_AS_CURRENT', /^The new password must be different/,
+    () => 'Le nouveau mot de passe doit être différent de l\'actuel.']
 ];
 
 /** The French sentence of a rule; the one without details when the message did not give them all. */

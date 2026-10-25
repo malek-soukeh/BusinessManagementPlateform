@@ -51,10 +51,49 @@
       </ul>
     </section>
 
+    <section class="panel password">
+      <h2 class="panel-title">Changer mon mot de passe</h2>
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+        <div class="password-fields">
+          <mat-form-field appearance="outline">
+            <mat-label>Mot de passe actuel</mat-label>
+            <input matInput type="password" formControlName="currentPassword" autocomplete="current-password" />
+            <mat-error *ngIf="passwordForm.controls.currentPassword.hasError('required')">Champ obligatoire.</mat-error>
+            <mat-error *ngIf="passwordForm.controls.currentPassword.hasError('incorrect')">Mot de passe actuel incorrect.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nouveau mot de passe</mat-label>
+            <input matInput type="password" formControlName="newPassword" autocomplete="new-password" />
+            <mat-hint>8 à 72 caractères</mat-hint>
+            <mat-error *ngIf="passwordForm.controls.newPassword.hasError('required')">Champ obligatoire.</mat-error>
+            <mat-error *ngIf="passwordForm.controls.newPassword.hasError('minlength')">Au moins 8 caractères.</mat-error>
+            <mat-error *ngIf="passwordForm.controls.newPassword.hasError('maxlength')">72 caractères au maximum.</mat-error>
+            <mat-error *ngIf="passwordForm.controls.newPassword.hasError('sameAsCurrent')">Le nouveau mot de passe doit être différent de l'actuel.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Confirmer le nouveau mot de passe</mat-label>
+            <input matInput type="password" formControlName="confirmPassword" autocomplete="new-password" />
+            <mat-error *ngIf="passwordForm.controls.confirmPassword.hasError('required')">Champ obligatoire.</mat-error>
+            <mat-error *ngIf="passwordForm.controls.confirmPassword.hasError('mismatch')">Les deux mots de passe ne correspondent pas.</mat-error>
+          </mat-form-field>
+        </div>
+
+        <p class="password-error" role="alert" *ngIf="passwordError">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>{{ passwordError }}
+        </p>
+
+        <button mat-flat-button color="primary" type="submit" id="profile-change-password" [disabled]="savingPassword">
+          {{ savingPassword ? 'Enregistrement…' : 'Changer le mot de passe' }}
+        </button>
+      </form>
+    </section>
+
     <section class="panel actions">
       <p class="notice">
         <mat-icon aria-hidden="true">info</mat-icon>
-        Pour modifier vos informations ou votre mot de passe, contactez un administrateur.
+        Pour modifier vos autres informations (nom, téléphone, email), contactez un administrateur.
       </p>
       <button mat-stroked-button color="warn" type="button" id="profile-logout" (click)="logout()">
         <mat-icon>logout</mat-icon>

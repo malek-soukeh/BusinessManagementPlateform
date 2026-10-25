@@ -5,6 +5,12 @@ export interface LoginRequest {
   password: string;
 }
 
+/** Body of POST /api/auth/change-password (the API answers 204 without a body). */
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 /** Response of POST /api/auth/login (expiresIn is in seconds). */
 export interface LoginResponse {
   accessToken: string;

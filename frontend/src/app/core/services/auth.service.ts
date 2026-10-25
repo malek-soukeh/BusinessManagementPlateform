@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthSession, LoginRequest, LoginResponse, Role, UserProfile } from '../models/auth.models';
+import { AuthSession, ChangePasswordPayload, LoginRequest, LoginResponse, Role, UserProfile } from '../models/auth.models';
 
 const STORAGE_KEY = 'bmp.session';
 
@@ -24,6 +24,11 @@ export class AuthService {
 
   me(): Observable<UserProfile> {
     return this.http.get<UserProfile>(`${environment.apiUrl}/auth/me`);
+  }
+
+  /** Changes the password of the logged-in user. Refused (409) when the current one is wrong. */
+  changePassword(payload: ChangePasswordPayload): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/auth/change-password`, payload);
   }
 
   logout(): void {

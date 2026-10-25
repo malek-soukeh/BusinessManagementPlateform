@@ -62,3 +62,24 @@ h1 { margin: 0 0 16px; font-size: 24px; font-weight: 500; }
 
   .notice { margin: 0; }
 }
+
+.password {
+  margin-top: 16px;
+
+  .password-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 4px 16px;
+  }
+
+  .password-error {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 12px;
+    color: var(--app-danger, #b3261e);
+    font-size: 14px;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+}

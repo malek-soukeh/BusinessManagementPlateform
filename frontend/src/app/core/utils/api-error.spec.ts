@@ -45,6 +45,12 @@ describe('translateApiError', () => {
     expect(translateApiError(null, 'Category not found with id 9')).toContain('introuvable');
   });
 
+  it('translates the errors of the password change', () => {
+    expect(translateApiError('INVALID_CURRENT_PASSWORD', 'Current password is incorrect'))
+      .toBe('Le mot de passe actuel est incorrect.');
+    expect(translateApiError('NEW_PASSWORD_SAME_AS_CURRENT', 'anything')).toContain('différent');
+  });
+
   it('is null when neither the code nor the message is known', () => {
     expect(translateApiError('CONFLICT', 'Something new')).toBeNull();
     expect(translateApiError(undefined, 'Something new')).toBeNull();
