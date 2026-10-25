@@ -53,6 +53,31 @@ describe('InvoiceService', () => {
     expect(found?.id).toBe(4);
   });
 
+  it('ignores the cancelled invoices of the order and finds the active one', () => {
+    let found: InvoiceSummary | null | undefined;
+    service.findByOrder(1, 'ORD-2026-00001').subscribe(result => (found = result));
+
+    // Newest first: the active invoice was created after the cancelled one.
+    http.expectOne(req => req.url === url).flush({
+      content: [summary(7, 1), { ...summary(4, 1), status: 'CANCELLED' }],
+      page: 0, size: 20, totalElements: 2, totalPages: 1
+    });
+
+    expect(found?.id).toBe(7);
+  });
+
+  it('answers null when the only invoice of the order is cancelled', () => {
+    let found: InvoiceSummary | null | undefined;
+    service.findByOrder(1, 'ORD-2026-00001').subscribe(result => (found = result));
+
+    http.expectOne(req => req.url === url).flush({
+      content: [{ ...summary(4, 1), status: 'CANCELLED' }],
+      page: 0, size: 20, totalElements: 1, totalPages: 1
+    });
+
+    expect(found).toBeNull();
+  });
+
   it('answers null when the order has no invoice', () => {
     let found: InvoiceSummary | null | undefined;
     service.findByOrder(1, 'ORD-2026-00001').subscribe(result => (found = result));

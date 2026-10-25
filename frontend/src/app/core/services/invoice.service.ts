@@ -38,12 +38,13 @@ export class InvoiceService {
   }
 
   /**
-   * The invoice of an order, or null. The API has no "invoice of an order" endpoint: the search
-   * also looks in the order number, so the result is narrowed to the exact order.
+   * The active invoice of an order, or null. A cancelled invoice does not count: the order can be
+   * invoiced again. The API has no "invoice of an order" endpoint: the search also looks in the
+   * order number, so the result is narrowed to the exact order.
    */
   findByOrder(orderId: number, orderNumber: string): Observable<InvoiceSummary | null> {
     return this.list({ q: orderNumber, status: '', paymentStatus: '', page: 0, size: 20 }).pipe(
-      map(page => page.content.find(invoice => invoice.orderId === orderId) ?? null)
+      map(page => page.content.find(invoice => invoice.orderId === orderId && invoice.status !== 'CANCELLED') ?? null)
     );
   }
 
