@@ -13,7 +13,7 @@ import {
 import { ORDER_STATUS_LABELS, OrderStatus, OrderSummary } from '../../../core/models/order.models';
 import { InvoiceService } from '../../../core/services/invoice.service';
 import { OrderService } from '../../../core/services/order.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
+import { extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 import { maxDecimals } from '../../../shared/validators';
 
 type OrderValue = OrderSummary | string | null;
@@ -195,18 +195,18 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   }
 
   private showError(error: unknown): void {
-    const message = apiMessage(error);
-    if (message.startsWith('Discount cannot exceed')) {
+    const code = apiErrorCode(error);
+    if (code === 'DISCOUNT_EXCEEDS_TOTAL') {
       this.form.controls.discount.setErrors({ tooHigh: true });
       this.form.controls.discount.markAsTouched();
       return;
     }
-    if (message.startsWith('Due date cannot be before')) {
+    if (code === 'DUE_DATE_BEFORE_ISSUE_DATE') {
       this.form.controls.dueDate.setErrors({ past: true });
       this.form.controls.dueDate.markAsTouched();
       return;
     }
-    if (message.startsWith('Cannot invoice an order with status')) {
+    if (code === 'ORDER_NOT_INVOICEABLE') {
       this.form.controls.order.setErrors({ notInvoiceable: true });
       this.form.controls.order.markAsTouched();
       return;

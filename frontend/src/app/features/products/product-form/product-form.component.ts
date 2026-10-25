@@ -9,7 +9,7 @@ import { CategoryNode, buildCategoryTree } from '../../../core/models/category.m
 import { Product, ProductStatus } from '../../../core/models/product.models';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
+import { apiMessage, extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 import { integer, maxDecimals } from '../../../shared/validators';
 
 /** Same bounds as the API: up to 11 digits before the decimal point and 3 after. */
@@ -155,18 +155,18 @@ export class ProductFormComponent implements OnInit {
 
   /** A duplicate reference or a vanished category is shown under its field, any other error above the buttons. */
   private showError(error: unknown): void {
-    const message = apiMessage(error);
-    if (message.startsWith('Reference already in use')) {
+    const code = apiErrorCode(error);
+    if (code === 'REFERENCE_ALREADY_USED') {
       this.form.controls.reference.setErrors({ taken: true });
       this.form.controls.reference.markAsTouched();
       return;
     }
-    if (message.startsWith('Category not found')) {
+    if (apiMessage(error).startsWith('Category not found')) {
       this.form.controls.categoryId.setErrors({ missing: true });
       this.form.controls.categoryId.markAsTouched();
       return;
     }
-    this.stale = message.includes('modified by someone else');
+    this.stale = code === 'CONCURRENT_MODIFICATION';
     this.errorMessage = extractErrorMessage(error, 'Enregistrement impossible. Réessayez plus tard.');
   }
 }

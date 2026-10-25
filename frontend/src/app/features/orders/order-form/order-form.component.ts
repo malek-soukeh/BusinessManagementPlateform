@@ -16,8 +16,8 @@ import { Product } from '../../../core/models/product.models';
 import { CustomerService } from '../../../core/services/customer.service';
 import { OrderService } from '../../../core/services/order.service';
 import { ProductService } from '../../../core/services/product.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
-import { translateApiMessage } from '../../../core/utils/api-messages';
+import { apiMessage, extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
+import { translateApiError } from '../../../core/utils/api-messages';
 import { integer } from '../../../shared/validators';
 
 /** A customer as chosen in the autocomplete (an order only knows its id and name). */
@@ -276,9 +276,10 @@ export class OrderFormComponent implements OnInit, OnDestroy {
   /** A refused customer or product line is shown where it belongs; anything else above the buttons. */
   private showError(error: unknown): void {
     const message = apiMessage(error);
-    const translated = translateApiMessage(message);
+    const code = apiErrorCode(error);
+    const translated = translateApiError(code, message);
 
-    if (/^Customer (is inactive|not found)/.test(message)) {
+    if (code === 'CUSTOMER_INACTIVE' || /^Customer not found/.test(message)) {
       this.form.controls.customer.setErrors({ unavailable: true });
       this.form.controls.customer.markAsTouched();
       return;

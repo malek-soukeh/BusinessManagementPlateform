@@ -10,7 +10,7 @@ import {
 } from '../../../core/models/user.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
+import { extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 import { ROLE_LABELS } from '../../../layout/nav-items';
 
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
@@ -155,7 +155,7 @@ export class UserFormComponent implements OnInit {
 
   /** A duplicate email is shown under its field, any other error above the buttons. */
   private showError(error: unknown): void {
-    if (apiMessage(error).startsWith('Email already in use')) {
+    if (apiErrorCode(error) === 'EMAIL_ALREADY_USED') {
       this.form.controls.email.setErrors({ taken: true });
       this.form.controls.email.markAsTouched();
       return;

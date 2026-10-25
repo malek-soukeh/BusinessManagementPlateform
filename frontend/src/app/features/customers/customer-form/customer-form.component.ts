@@ -7,7 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerPayload, CustomerStatus } from '../../../core/models/customer.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CustomerService } from '../../../core/services/customer.service';
-import { extractErrorMessage } from '../../../core/utils/http-error.util';
+import { extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 
 @Component({
   selector: 'app-customer-form',
@@ -127,13 +127,13 @@ export class CustomerFormComponent implements OnInit {
   /** A duplicate email or tax number is shown under its field, any other error above the buttons. */
   private showError(error: unknown): void {
     if (error instanceof HttpErrorResponse && error.status === 409) {
-      const message: string = error.error?.message ?? '';
-      if (message.startsWith('Email already in use')) {
+      const code = apiErrorCode(error);
+      if (code === 'EMAIL_ALREADY_USED') {
         this.form.controls.email.setErrors({ taken: true });
         this.form.controls.email.markAsTouched();
         return;
       }
-      if (message.startsWith('Tax number already in use')) {
+      if (code === 'TAX_NUMBER_ALREADY_USED') {
         this.form.controls.taxNumber.setErrors({ taken: true });
         this.form.controls.taxNumber.markAsTouched();
         return;

@@ -7,7 +7,7 @@ import { forkJoin, of } from 'rxjs';
 
 import { Category, CategoryNode, buildCategoryTree, descendantIds } from '../../../core/models/category.models';
 import { CategoryService } from '../../../core/services/category.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
+import { extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 
 @Component({
   selector: 'app-category-form',
@@ -120,16 +120,16 @@ export class CategoryFormComponent implements OnInit {
 
   /** A duplicate name or an invalid parent is shown under its field, any other error above the buttons. */
   private showError(error: unknown): void {
-    const message = apiMessage(error);
-    if (message.startsWith('Category name already in use')) {
+    const code = apiErrorCode(error);
+    if (code === 'CATEGORY_NAME_ALREADY_USED') {
       this.setFieldError('name', 'taken');
       return;
     }
-    if (message.startsWith('A category cannot be its own parent')) {
+    if (code === 'CATEGORY_CYCLE') {
       this.setFieldError('parentId', 'cycle');
       return;
     }
-    if (message.startsWith('Parent category not found')) {
+    if (code === 'PARENT_CATEGORY_NOT_FOUND') {
       this.setFieldError('parentId', 'missing');
       return;
     }

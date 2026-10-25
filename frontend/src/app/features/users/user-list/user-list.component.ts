@@ -8,7 +8,7 @@ import { Role } from '../../../core/models/auth.models';
 import { User } from '../../../core/models/user.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService } from '../../../core/services/user.service';
-import { apiMessage, extractErrorMessage } from '../../../core/utils/http-error.util';
+import { extractErrorMessage, apiErrorCode } from '../../../core/utils/http-error.util';
 import { ROLE_LABELS } from '../../../layout/nav-items';
 import {
   ConfirmDialogComponent, ConfirmDialogData
@@ -126,7 +126,7 @@ export class UserListComponent implements OnInit {
         },
         error: (error: unknown) => {
           // A user linked to records cannot be deleted: deactivating is offered right away.
-          if (deleted && apiMessage(error).startsWith('User is linked to existing records')) {
+          if (deleted && apiErrorCode(error) === 'USER_HAS_RECORDS') {
             this.snackBar
               .open(extractErrorMessage(error), 'Désactiver', { duration: 8000 })
               .onAction()
