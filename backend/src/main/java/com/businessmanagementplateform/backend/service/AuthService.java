@@ -12,6 +12,7 @@ import com.businessmanagementplateform.backend.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,21 +22,34 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final String LOGIN_PATH = "/api/auth/login";
+
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase();
 
-        authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(email, request.password()));
+        try {
+            authenticationManager.authenticate(
+                    UsernamePasswordAuthenticationToken.unauthenticated(email, request.password()));
+        } catch (AuthenticationException ex) {
+            // Who tried and when, never the password. The login route is public: the user is not known yet.
+            auditService.record(new AuditEntry(email, AuditActions.LOGIN_FAILED, "USER", null, null,
+                    "POST", LOGIN_PATH, "Invalid credentials or inactive account"));
+            throw ex;
+        }
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
         String role = user.getRole().getName().name();
+
+        auditService.record(new AuditEntry(email, AuditActions.LOGIN, "USER", user.getId(), email,
+                "POST", LOGIN_PATH, null));
 
         String token = jwtService.generateToken(email, role);
         return new LoginResponse(token, "Bearer", jwtService.getExpirationSeconds(), email, role);

@@ -1,5 +1,6 @@
 package com.businessmanagementplateform.backend.security;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +27,16 @@ public class CurrentUser {
     /** Whether the current user may activate or deactivate a customer: ADMIN and MANAGER yes, EMPLOYEE never. */
     public boolean canChangeCustomerStatus() {
         return hasAnyAuthority(MANAGEMENT_ROLES);
+    }
+
+    /** E-mail of the logged-in user, or null when nobody (or only the anonymous user) is authenticated. */
+    public String email() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        return authentication.getName();
     }
 
     private boolean hasAnyAuthority(Set<String> authorities) {

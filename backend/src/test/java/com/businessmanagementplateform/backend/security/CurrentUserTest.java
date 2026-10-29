@@ -75,4 +75,19 @@ class CurrentUserTest {
         logInAnonymously();
         assertThat(currentUser.canChangeCustomerStatus()).isFalse();
     }
+
+    @Test
+    void emailIsTheNameOfTheAuthenticatedUser() {
+        logInAs("EMPLOYEE");
+
+        assertThat(currentUser.email()).isEqualTo("user@techdistrib.tn");
+    }
+
+    @Test
+    void emailIsNullWithoutAnAuthenticatedUser() {
+        assertThat(currentUser.email()).isNull();
+
+        logInAnonymously();
+        assertThat(currentUser.email()).isNull();
+    }
 }
